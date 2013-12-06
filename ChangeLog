@@ -1,0 +1,7 @@
+
+0.13-337.11	disused rlecuyer, use a RNGstream from lecuyer in parallel package.
+0.13-338.13	remove rpath in linking time.
+
+0.13-339.13	added SystemRequirements: libR, GNU make in DESCRIPTION file.
+
+0.13-339.16	fitted as much as possible by C90.
