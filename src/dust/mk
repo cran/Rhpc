@@ -1,4 +1,0 @@
-all:
-	./configure
-	./cleanup
-	(cd ../ ; R CMD build Rhpc)

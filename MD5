@@ -1,5 +1,5 @@
-3f890df7b708f0ccf4ddfe3c7adaa4cf *ChangeLog
-bbf34c3a99215e52c07ddc56c0fc7132 *DESCRIPTION
+d96ebb534a4c43faa241d119af5a46fc *ChangeLog
+6699084904794b59a67ef4be3bf2359b *DESCRIPTION
 8b54e5a89fbda3af5e077053d40bec76 *NAMESPACE
 11ecbe8590a854609a4ab35f686aeb48 *R/Rhpc.R
 0bc09bb867389a6467a374b651dcbe68 *R/RhpcExt.R
@@ -8,9 +8,9 @@ bbf34c3a99215e52c07ddc56c0fc7132 *DESCRIPTION
 f11eddad8d962895f5d0714b67dc06bf *R/RhpcSerialzie.R
 cf153565de6d29b3c279645efc60b151 *R/RhpcWorker.R
 666a4d52197d7b3074293c6c8cd8c49a *R/zzz.R
-af026b767069e93bc6cca3751e861a82 *cleanup
-def839280916c2217d551eecad9dffc4 *configure
-7cb289b0a17026ab3f97099a296f3aee *configure.ac
+038a201254a4f7b7283afabf6063c50c *cleanup
+c846d815a28fcb59cb9ddbd817228a2f *configure
+072cf955ba7db2269bdb82d178ec7da8 *configure.ac
 65a4b858cb69d58623e20124f8c4c61d *man/Rhpc-package.Rd
 3edd98b09fcc79c225d25188c7786280 *src/Makevars.in
 942295f0bce8a37da23ce91a6a74039a *src/RhpcMPI.c
@@ -20,8 +20,6 @@ def839280916c2217d551eecad9dffc4 *configure
 c09e1faf109ec83ecfa8cd812c1e3fed *src/RhpcSerialize.c
 d415c9e4abba6bcb0ddb067d99e17453 *src/common/Rhpc.h
 f6efb51863da457743951d4625e1fb99 *src/common/Rhpc_ms.h
-4464b049d6962b99b6ee5a02dd47123e *src/dust/DESCRIPTION.in
-960794c9fad7b93688047c093b01031e *src/dust/mk
 46f2314be70b1dbf623f48fa8fff30f7 *src/worker/Makefile.in
 5039e66ff04845f80bb6dc560ced58e7 *src/worker/Rhpc.in
 390d470be1a880929a44705f0f60c320 *src/worker/RhpcSpawn.in

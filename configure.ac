@@ -70,18 +70,6 @@ RCMDCONFIGLDFLAGS=$(${R_HOME}/bin/R CMD config --ldflags 2>/dev/null)
 RCMDCONFIGCPPFLAGS=$(${R_HOME}/bin/R CMD config --cppflags 2>/dev/null)
 
 
-YEARSTAMP=$(date '+%y')
-YDAY=$(date '+%j')
-YDAYSTAMP=$(expr ${YDAY} + 1000|sed -e 's/^.//')
-HOUR=$(date '+%H')
-HOURSTAMP=$(expr ${HOUR} + 100 |sed -e 's/^.//')
-DATESTAMP=$(date '+%Y-%m-%d')
-
-
-AC_SUBST(YEARSTAMP)
-AC_SUBST(YDAYSTAMP)
-AC_SUBST(HOURSTAMP)
-AC_SUBST(DATESTAMP)
 AC_SUBST(MPICC)
 AC_SUBST(MPI_CFLAGS)
 AC_SUBST(MPI_LDFLAGS)
@@ -92,6 +80,5 @@ AC_SUBST(RCMDCONFIGLDFLAGS)
 AC_SUBST(RCMDCONFIGCPPFLAGS)
 AC_SUBST(R_PACKAGE_DIR)
 
-AC_OUTPUT(src/dust/DESCRIPTION src/Makevars src/worker/Makefile src/worker/Rhpc src/worker/RhpcSpawn)
-mv src/dust/DESCRIPTION DESCRIPTION
+AC_OUTPUT(src/Makevars src/worker/Makefile src/worker/Rhpc src/worker/RhpcSpawn)
 

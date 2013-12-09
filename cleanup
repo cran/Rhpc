@@ -16,5 +16,4 @@ rm -f src/worker/Makefile
 rm -f src/worker/Rhpc
 rm -f src/worker/RhpcSpawn
 rm -f src/worker/RhpcWorker
-rm -f src/dust/*~
 

@@ -565,10 +565,6 @@ LIBR
 MPI_LDFLAGS
 MPI_CFLAGS
 MPICC
-DATESTAMP
-HOURSTAMP
-YDAYSTAMP
-YEARSTAMP
 target_alias
 host_alias
 build_alias
@@ -1740,12 +1736,6 @@ RCMDCONFIGLDFLAGS=$(${R_HOME}/bin/R CMD config --ldflags 2>/dev/null)
 RCMDCONFIGCPPFLAGS=$(${R_HOME}/bin/R CMD config --cppflags 2>/dev/null)
 
 
-YEARSTAMP=$(date '+%y')
-YDAY=$(date '+%j')
-YDAYSTAMP=$(expr ${YDAY} + 1000|sed -e 's/^.//')
-HOUR=$(date '+%H')
-HOURSTAMP=$(expr ${HOUR} + 100 |sed -e 's/^.//')
-DATESTAMP=$(date '+%Y-%m-%d')
 
 
 
@@ -1756,13 +1746,7 @@ DATESTAMP=$(date '+%Y-%m-%d')
 
 
 
-
-
-
-
-
-
-ac_config_files="$ac_config_files src/dust/DESCRIPTION src/Makevars src/worker/Makefile src/worker/Rhpc src/worker/RhpcSpawn"
+ac_config_files="$ac_config_files src/Makevars src/worker/Makefile src/worker/Rhpc src/worker/RhpcSpawn"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -2469,7 +2453,6 @@ cat >>$CONFIG_STATUS <<\_ACEOF || ac_write_fail=1
 for ac_config_target in $ac_config_targets
 do
   case $ac_config_target in
-    "src/dust/DESCRIPTION") CONFIG_FILES="$CONFIG_FILES src/dust/DESCRIPTION" ;;
     "src/Makevars") CONFIG_FILES="$CONFIG_FILES src/Makevars" ;;
     "src/worker/Makefile") CONFIG_FILES="$CONFIG_FILES src/worker/Makefile" ;;
     "src/worker/Rhpc") CONFIG_FILES="$CONFIG_FILES src/worker/Rhpc" ;;
@@ -2920,5 +2903,4 @@ if test -n "$ac_unrecognized_opts" && test "$enable_option_checking" != no; then
 $as_echo "$as_me: WARNING: unrecognized options: $ac_unrecognized_opts" >&2;}
 fi
 
-mv src/dust/DESCRIPTION DESCRIPTION
 
