@@ -103,7 +103,9 @@ static void Rhpc_worker_init(void)
   DPRINT("worker init\n");
 
   DPRINT("Worker:rank=%d:procs=%d\n", MPI_rank, MPI_procs);
-  
+
+  Rhpc_set_options(MPI_rank, MPI_procs, RHPC_Comm);
+
   /*
   {
     SEXP ret, l_ret;
@@ -141,6 +143,8 @@ static void Rhpc_worker_main(void){
   SEXP cmdSexp, cmdexpr;
   ParseStatus status;
 
+  push_policy();
+
   PROTECT(cmdSexp = allocVector(STRSXP, 1));
   SET_STRING_ELT(cmdSexp, 0, mkChar("function (fun, args)do.call(\"fun\", args)"));
   PROTECT( cmdexpr = R_ParseVector(cmdSexp, -1, &status, R_NilValue));
@@ -161,6 +165,8 @@ static void Rhpc_worker_main(void){
     else if (getcmd==CMD_NAME_SERIALIZE_MODE)      SERMODE=getsubcmd;
   }while(getcmd!=CMD_NAME_ENDL);
   UNPROTECT(1);
+
+  pop_policy();
 }
 
 

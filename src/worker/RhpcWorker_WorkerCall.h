@@ -100,7 +100,7 @@ static void Rhpc_worker_call(int *cmd, int action)
   
   PROTECT(lng = LCONS(Rhpc_docall, CONS(fun,CONS(argq, R_NilValue))));
   ret=R_tryEval(lng, R_GlobalEnv, &errorOccurred);
-    
+
   if(action == 0){
     UNPROTECT(8);
     return;

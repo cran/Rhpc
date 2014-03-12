@@ -83,7 +83,7 @@ static void OutBytesMem(R_outpstream_t stream, void *buf, int length)
 #ifndef LONG_VECTOR_SUPPORT
     /* There is a potential overflow here on 32-bit systems */
     if((double) mb->count + length > (double) INT_MAX)
-	error(_("serialization is too large to store in a raw vector"));
+	error("serialization is too large to store in a raw vector");
 #endif
     if (needed > mb->size) resize_buffer(mb, needed);
     memcpy(mb->buf + mb->count, buf, length);

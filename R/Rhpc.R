@@ -40,7 +40,7 @@ Rhpc_worker_shy <- function(cl,FUN,...)
 {
   arg  <- list(...)
   args <- list(FUN,arg)
-  .Call("Rhpc_mpi_worker_call", cl, args, as.integer(0), PACKAGE="Rhpc")
+  invisible(.Call("Rhpc_mpi_worker_call", cl, args, as.integer(0), PACKAGE="Rhpc"))
 }
 
 

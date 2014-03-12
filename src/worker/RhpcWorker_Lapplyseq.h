@@ -41,7 +41,6 @@ static void Rhpc_worker_lapply_seq(int *cmd)
   R_xlen_t works;
 
 
-
   GET_CMD(cmd, &getcmd, &getsubcmd, &cnti, &modi);
 
   /* data recive alloc */
@@ -210,6 +209,7 @@ static void Rhpc_worker_lapply_seq(int *cmd)
     ret=R_tryEval(lng, R_GlobalEnv, &errorOccurred);
     DPRINT("errorOccurred=%d\n",errorOccurred);
 
+
     if(errorOccurred){
       SEXP eclass;
       SEXP elist;
@@ -317,6 +317,7 @@ static void Rhpc_worker_lapply_seq(int *cmd)
     /*
       mydump((void*)cmdx,CMDLINESZ*sizeof(int));
     */
+
     GET_CMD(cmdx, &getx, &getsubx, &cntx, &modx);
     if( getsubx == SUBCMD_EXIT ){
       return;

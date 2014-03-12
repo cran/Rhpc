@@ -1,5 +1,9 @@
+#include <sched.h>
+
 #include <sys/types.h>
 #include <unistd.h>
+
+
 
 #if 0
 struct timeval ts,te;
@@ -72,7 +76,7 @@ SEXP Rhpc_serialize(SEXP);
 SEXP Rhpc_unserialize(SEXP);
 
 #if !defined(WORKER) /* master only */
-static char RHPC_WORKER_CMD[]={R_PACKAGE_DIR "/RhpcSpawn"};
+static char RHPC_WORKER_CMD[]={MY_PACKAGE_DIR "/RhpcSpawn"};
 #endif
 #define RHPC_SPLIT_SIZE (1UL<<24)
 #define CMDLINESZ 4
@@ -132,6 +136,92 @@ static int MPI_argc = sizeof(MPI_argv)/sizeof(char*);
 static char *MPI_argv[1]={"R"};
 static int MPI_argc = 1;
 #endif
+
+#ifndef MYSCHED
+int MYSCHED;
+#endif
+__inline void push_policy(void)
+{
+#ifdef _POSIX_PRIORITY_SCHEDULING
+  struct sched_param sp;
+  int policy_max;
+  MYSCHED = sched_getscheduler(0);
+  if(-1 == (policy_max = sched_get_priority_max(SCHED_FIFO))){
+    policy_max=0;
+  }
+  sp.sched_priority = policy_max;
+  sched_setscheduler(0, SCHED_FIFO, &sp);
+  /* Rprintf("SCHED=%d:max=%d\n", SCHED_FIFO, sp.sched_priority); */
+#else
+  MYSCHED = 1;
+#endif /* _POSIX_PRIORITY_SCHEDULING */
+}
+__inline void pop_policy(void)
+{
+#ifdef _POSIX_PRIORITY_SCHEDULING
+  struct sched_param sp;
+  int policy_max;
+  if(-1 == (policy_max = sched_get_priority_max(MYSCHED))){
+    policy_max=0;
+  }
+  sp.sched_priority = policy_max;
+  sched_setscheduler(0, MYSCHED, &sp);
+  /* Rprintf("SCHED=%d:max=%d\n", MYSCHED, sp.sched_priority); */
+#else
+  MYSCHED=0;
+#endif /* _POSIX_PRIORITY_SCHEDULING */
+}
+
+#include <R_ext/Parse.h>
+static void op_comm_free(SEXP com)
+{
+  void *ptr;
+  if (TYPEOF(com) != EXTPTRSXP)
+    error("not external pointer");
+  ptr = R_ExternalPtrAddr(com);
+  Free(ptr);
+}
+
+__inline static void Rhpc_set_options(int rank, int procs, MPI_Comm ccomm)
+{
+  SEXP op_ex;
+  SEXP op_nm;
+  MPI_Comm *ptr;
+  SEXP com=R_NilValue;
+  int errorOccurred=0;
+
+  if(rank != -1){
+    ptr = Calloc(1,MPI_Comm);
+    PROTECT(com = R_MakeExternalPtr(ptr, R_NilValue, R_NilValue));
+    *((MPI_Comm*)R_ExternalPtrAddr(com)) = ccomm;
+    PROTECT(op_ex = LCONS(install("options"),
+			  CONS(ScalarInteger(rank),
+			       CONS(ScalarInteger(procs),
+				    CONS(com,
+					 CONS(ScalarInteger(MPI_Comm_c2f(ccomm)),
+					      R_NilValue))))));
+  }else{
+    PROTECT(com);
+    PROTECT(op_ex = LCONS(install("options"),
+			  CONS(R_NilValue,
+			       CONS(R_NilValue,
+				    CONS(R_NilValue,
+					 CONS(R_NilValue,
+					      R_NilValue))))));
+  }
+  PROTECT(op_nm = allocVector(STRSXP, 5));
+  SET_STRING_ELT(op_nm,0,mkChar(""));
+  SET_STRING_ELT(op_nm,1,mkChar("Rhpc.mpi.rank"));
+  SET_STRING_ELT(op_nm,2,mkChar("Rhpc.mpi.procs"));
+  SET_STRING_ELT(op_nm,3,mkChar("Rhpc.mpi.c.comm"));
+  SET_STRING_ELT(op_nm,4,mkChar("Rhpc.mpi.f.comm"));
+  setAttrib(op_ex, R_NamesSymbol, op_nm);
+  R_tryEval(op_ex, R_GlobalEnv, &errorOccurred);
+
+  UNPROTECT(3);
+}
+
+
 
 #ifdef DEBUG
 static void mydump(unsigned char* p, size_t sz)

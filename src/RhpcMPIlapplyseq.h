@@ -161,7 +161,8 @@ SEXP Rhpc_mpi_lapply_seq(SEXP cl, SEXP X, SEXP args)
   R_xlen_t i;
   int errorOccurred=0;
 
-  MPI_Comm comm = SXP2COMM(cl);
+
+  MPI_Comm comm;
   int procs;
 
   SEXP out, l_out=R_NilValue;
@@ -188,6 +189,11 @@ SEXP Rhpc_mpi_lapply_seq(SEXP cl, SEXP X, SEXP args)
   PROTECT_INDEX uns_l_ix;
   PROTECT_INDEX uns_ix;
 
+  if(TYPEOF(cl)!=EXTPTRSXP){
+    error("it's not MPI_Comm external pointer\n");
+  }
+  comm = SXP2COMM(cl);
+
   _M(MPI_Comm_size(comm, &procs));
 
   if(finalize){
@@ -199,6 +205,8 @@ SEXP Rhpc_mpi_lapply_seq(SEXP cl, SEXP X, SEXP args)
     return(R_NilValue);
   }
 
+  push_policy();
+
   /* -------- common start */
   /* serialize */
   if(SERMODE){
@@ -209,6 +217,7 @@ SEXP Rhpc_mpi_lapply_seq(SEXP cl, SEXP X, SEXP args)
     PROTECT(l_out);
     PROTECT(out=Rhpc_serialize(args));
   }
+
 
   /* cmd send */
   szi = xlength(out);
@@ -322,6 +331,8 @@ SEXP Rhpc_mpi_lapply_seq(SEXP cl, SEXP X, SEXP args)
   UNPROTECT(7);
   Free(workers);
   Free(workersix);
+
+  pop_policy();
   return (_CHK(outlist));
 }
 

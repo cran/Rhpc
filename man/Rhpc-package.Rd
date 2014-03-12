@@ -8,7 +8,6 @@
 \alias{Rhpc_lapply}
 \alias{Rhpc_lapplyLB}
 \alias{Rhpc_numberOfWorker}
-\alias{Rhpc_getMPIRank}
 \alias{Rhpc_Export}
 \alias{Rhpc_EvalQ}
 \alias{Rhpc_setupRNG}
@@ -70,6 +69,13 @@ Rhpc_setupRNG(cl, iseed)
 # use Rhpc command
 Rhpc_initialize()
 cl <- Rhpc_getHandle() # ommit number of worker if use Rhpc batch
+
+# Rhpc set to options
+opstr=list("Rhpc.mpi.rank","Rhpc.mpi.procs","Rhpc.mpi.c.comm","Rhpc.mpi.f.comm")
+do.call("options",opstr)
+Rhpc_worker_call(cl, "do.call","options", opstr)
+# warning! : pointer not export, worker Rhpc.mpi.c.comm is (nil) on master.
+
 Rhpc_worker_call(cl, Sys.getpid)
 Rhpc_lapply(cl,1:10000,sqrt)
 Rhpc_lapplyLB(cl,1:10000,sqrt)

@@ -184,7 +184,7 @@ SEXP Rhpc_mpi_lapply_LB(SEXP cl, SEXP X, SEXP args)
   R_xlen_t i;
   int errorOccurred=0;
 
-  MPI_Comm comm = SXP2COMM(cl);
+  MPI_Comm comm;
   int procs;
 
   SEXP out, l_out=R_NilValue;
@@ -210,6 +210,11 @@ SEXP Rhpc_mpi_lapply_LB(SEXP cl, SEXP X, SEXP args)
   PROTECT_INDEX uns_l_ix;
   PROTECT_INDEX uns_ix;
 
+  if(TYPEOF(cl)!=EXTPTRSXP){
+    error("it's not MPI_Comm external pointer\n");
+  }
+  comm = SXP2COMM(cl);
+
   _M(MPI_Comm_size(comm, &procs));
 
   if(finalize){
@@ -220,6 +225,8 @@ SEXP Rhpc_mpi_lapply_LB(SEXP cl, SEXP X, SEXP args)
     warning("Rhpc not initialized.");
     return(R_NilValue);
   }
+
+  push_policy();
 
   /* -------- common start */
   /* serialize */
@@ -345,6 +352,9 @@ SEXP Rhpc_mpi_lapply_LB(SEXP cl, SEXP X, SEXP args)
   Rhpc_mpi_lapply_LB_exit(procs, comm);
   UNPROTECT(8);
   Free(workers);
+
+  pop_policy();
+
   return (_CHK(outlist));
 }
 

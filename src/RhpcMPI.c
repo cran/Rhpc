@@ -76,10 +76,13 @@ SEXP Rhpc_mpi_initialize(void)
   _M(MPI_Errhandler_set(MPI_COMM_SELF, MPI_ERRORS_RETURN));
   _M(MPI_Comm_rank(MPI_COMM_WORLD, &MPI_rank));
   _M(MPI_Comm_size(MPI_COMM_WORLD, &MPI_procs));
-
-  RHPC_Comm = MPI_COMM_WORLD;
-
   DPRINT("Rhpc_initialize : rank:%d size:%d\n", MPI_rank, MPI_procs);
+  
+  RHPC_Comm = MPI_COMM_WORLD;
+  Rhpc_set_options( MPI_rank, MPI_procs,RHPC_Comm);
+
+
+
   initialize = 1;
   return(R_NilValue);
 }
@@ -159,6 +162,10 @@ SEXP Rhpc_gethandle(SEXP procs)
   _M(MPI_Comm_size(SXP2COMM(com), &num));
   RHPC_Comm = SXP2COMM(com); /* rewrite RHPC_Comm */
   _M(MPI_Errhandler_set(RHPC_Comm, MPI_ERRORS_RETURN));
+  _M(MPI_Comm_rank(RHPC_Comm, &MPI_rank));
+  _M(MPI_Comm_size(RHPC_Comm, &MPI_procs));
+  DPRINT("Rhpc_getHandle(MPI_Comm_spawn : rank:%d size:%d\n", MPI_rank, MPI_procs);
+  Rhpc_set_options( MPI_rank, MPI_procs,RHPC_Comm);
   UNPROTECT(1);
   return(com);
 }
@@ -180,6 +187,7 @@ SEXP Rhpc_mpi_finalize(void)
   _M(MPI_Bcast(cmd, CMDLINESZ, MPI_INT, 0, RHPC_Comm));
   _M(MPI_Finalize());
   finalize =1;
+  Rhpc_set_options( -1, -1, MPI_COMM_NULL);
   return(R_NilValue);
 }
 
@@ -223,9 +231,14 @@ SEXP Rhpc_serialize_mode(SEXP mode)
 
 SEXP Rhpc_number_of_worker(SEXP cl)
 {
-  MPI_Comm comm = SXP2COMM(cl);
+  MPI_Comm comm;
   SEXP num;
   int procs;
+
+  if(TYPEOF(cl)!=EXTPTRSXP){
+    error("it's not MPI_Comm external pointer\n");
+  }
+  comm = SXP2COMM(cl);
 
   if(finalize){
     warning("Rhpc were already finalized.");
@@ -239,29 +252,6 @@ SEXP Rhpc_number_of_worker(SEXP cl)
   PROTECT(num=allocVector(INTSXP,1));
   _M(MPI_Comm_size(comm, &procs));
   INTEGER(num)[0]=procs-1;
-  UNPROTECT(1);
-  return(num);
-}
-
-
-SEXP Rhpc_get_mpi_rank(SEXP cl)
-{
-  MPI_Comm comm = SXP2COMM(cl);
-  SEXP num;
-  int rank;
-
-  if(finalize){
-    warning("Rhpc were already finalized.");
-    return(R_NilValue);
-  }
-  if(!initialize){
-    warning("Rhpc not initialized.");
-    return(R_NilValue);
-  }
-
-  PROTECT(num=allocVector(INTSXP,1));
-  _M(MPI_Comm_rank(comm, &rank));
-  INTEGER(num)[0]=rank;
   UNPROTECT(1);
   return(num);
 }

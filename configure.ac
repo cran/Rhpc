@@ -7,7 +7,6 @@ have_libR=no
 if test -n "$CHKLIBR"; then
    have_libR=yes
 fi
-echo "###${have_libR}###${CHECKLIBR}###"
 AC_MSG_CHECKING([libR check])
 if test "${have_libR}" = no; then
 	AC_MSG_RESULT(no)
@@ -20,23 +19,28 @@ else
 	AC_MSG_RESULT(yes)
 fi
 
-
 AC_ARG_WITH(mpicc,
 [   --with-mpicc=mpicc          Location of mpicc full path.],
-[   if test "${withval}" != no; then
+[   if test "${withval}x" != x; then
          MPICC=${withval}
     fi  ]	
 )
 AC_ARG_WITH(MPI_INCLUDE,
 [   --with-mpi-cflags=-I/usr/include          Location of mpi.h directory.],
-[   if test "${withval}" != no; then
+[   if test "${withval}x" != x; then
          MPI_CFLAGS=${withval}
     fi  ]	
 )
 AC_ARG_WITH(MPI_LIBS,
 [   --with-mpi-ldflags=          MPI LIBS.],
-[   if test "${withval}" != no; then
+[   if test "${withval}x" != x; then
          MPI_LDFLAGS=${withval}
+    fi  ]	
+)
+AC_ARG_WITH(RHPC_PACKAGE_DIR,
+[   --with-package-dir=          Top directory of Rhpc package],
+[   if test "${withval}x" != x; then
+        MY_PACKAGE_DIR=${withval}
     fi  ]	
 )
 
@@ -52,6 +56,14 @@ if test -z "${MPICC}" ; then
 		fi
 	done
 	echo "configure: MPICC=$MPICC"
+fi
+
+if test -z "${MY_PACKAGE_DIR}" ; then
+	if test "${RPM_BUILD_ROOT}x" != "x"; then
+		MY_PACKAGE_DIR=${R_HOME}/library/Rhpc
+	else
+		MY_PACKAGE_DIR=${R_PACKAGE_DIR}
+	fi
 fi
 
 #case "${host_os}" in
@@ -78,6 +90,7 @@ AC_SUBST(R_HOME)
 AC_SUBST(R_ARCH)
 AC_SUBST(RCMDCONFIGLDFLAGS)
 AC_SUBST(RCMDCONFIGCPPFLAGS)
+AC_SUBST(MY_PACKAGE_DIR)
 AC_SUBST(R_PACKAGE_DIR)
 
 AC_OUTPUT(src/Makevars src/worker/Makefile src/worker/Rhpc src/worker/RhpcSpawn)

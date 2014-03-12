@@ -1,6 +1,6 @@
 Package: Rhpc
-Version: 0.13-343.05
-Date: 2013-12-09
+Version: 0.14-71
+Date: 2014-03-12
 Title: An R package for High-Performance Computing
 Author: Junji Nakano <nakanoj@ism.ac.jp> and Ei-ji Nakama<nakama@com-one.com>
 Maintainer: Ei-ji Nakama <nakama@com-one.com>
@@ -12,9 +12,9 @@ Description: Rhpc_lapply, Rhpc_lapplyLB and Rhpc_worker_call using MPI provides 
 License: AGPL-3
 OS_type: unix
 URL: http://prs.ism.ac.jp/~nakama/Rhpc/
-BugReports: e-mail:nakama@com-one.com
+BugReports: e-mail:nakama at com-one.com
 ByteCompile: true
-Packaged: 2013-12-09 05:32:16 UTC; nakama
+Packaged: 2014-03-12 10:36:14 UTC; nakama
 NeedsCompilation: yes
 Repository: CRAN
-Date/Publication: 2013-12-09 08:28:47
+Date/Publication: 2014-03-12 16:35:56

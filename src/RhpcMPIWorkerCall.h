@@ -23,7 +23,7 @@ SEXP Rhpc_mpi_worker_call(SEXP cl, SEXP args, SEXP actioncode)
   R_xlen_t i,j;
   int errorOccurred=0;
 
-  MPI_Comm comm = SXP2COMM(cl);
+  MPI_Comm comm;
   int procs;
 
   SEXP out, l_out=R_NilValue;
@@ -52,6 +52,10 @@ SEXP Rhpc_mpi_worker_call(SEXP cl, SEXP args, SEXP actioncode)
 
   SEXP outlist;
 
+  if(TYPEOF(cl)!=EXTPTRSXP){
+    error("it's not MPI_Comm external pointer\n");
+  }
+  comm = SXP2COMM(cl);
 
   _M(MPI_Comm_size(comm, &procs));
 
@@ -63,6 +67,8 @@ SEXP Rhpc_mpi_worker_call(SEXP cl, SEXP args, SEXP actioncode)
     warning("Rhpc not initialized.");
     return(R_NilValue);
   }
+
+  push_policy();
 
   /* serialize */
   GETTIME(ts);
@@ -116,6 +122,9 @@ SEXP Rhpc_mpi_worker_call(SEXP cl, SEXP args, SEXP actioncode)
 	SET_VECTOR_ELT(nillist, i-1, R_NilValue);
       }
       UNPROTECT(3);
+
+      pop_policy();
+
       return(nillist);
   }
 
@@ -222,6 +231,8 @@ SEXP Rhpc_mpi_worker_call(SEXP cl, SEXP args, SEXP actioncode)
   Free(szs);
   Free(cnts);
   Free(mods);
+
+  pop_policy();
 
   return(_CHK(outlist));
 }

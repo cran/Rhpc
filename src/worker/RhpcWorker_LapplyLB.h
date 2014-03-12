@@ -206,7 +206,7 @@ static void Rhpc_worker_lapply_LB(int *cmd)
     PROTECT(lng = LCONS(Rhpc_docall, CONS(fun,CONS(argw, R_NilValue))));
     ret=R_tryEval(lng, R_GlobalEnv, &errorOccurred);
     DPRINT("errorOccurred=%d\n",errorOccurred);
-
+    
     if(errorOccurred){
       SEXP eclass;
       SEXP elist;

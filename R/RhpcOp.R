@@ -24,3 +24,4 @@ Rhpc_serialize_mode <- function(mode = 0)
   else
     .Call("Rhpc_serialize_mode", NULL, PACKAGE="Rhpc")
 }
+
