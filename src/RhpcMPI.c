@@ -30,6 +30,9 @@
 
 #include <R.h>
 #include <Rinternals.h>
+#ifndef WIN32
+#include "common/config.h"
+#endif
 #include "common/Rhpc.h"
 
 static int initialize=0;

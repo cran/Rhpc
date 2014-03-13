@@ -157,14 +157,12 @@ SEXP Rhpc_serialize(SEXP object)
 {
     struct R_outpstream_st out;
     R_pstream_format_t type;
-    SEXP (*hook)(SEXP, SEXP) = NULL;
     int version;
     struct membuf_st mbs;
     SEXP val;
 
     version = R_DefaultSerializeVersion;
     type = R_pstream_binary_format;
-    hook = NULL;
 
 
     /* set up a context which will free the buffer if there is an error */

@@ -1,7 +1,15 @@
-#include <sched.h>
 
+#ifdef HAVE_SCHED_H
+#include <sched.h>
+#endif
+
+#ifdef HAVE_SYS_TYPES_H
 #include <sys/types.h>
+#endif
+
+#ifdef HAVE_UNISTD_H
 #include <unistd.h>
+#endif
 
 
 
@@ -142,7 +150,7 @@ int MYSCHED;
 #endif
 __inline void push_policy(void)
 {
-#ifdef _POSIX_PRIORITY_SCHEDULING
+#if (defined(_POSIX_PRIORITY_SCHEDULING) && defined(HAVE_SCHED_GETSCHEDULER))
   struct sched_param sp;
   int policy_max;
   MYSCHED = sched_getscheduler(0);
@@ -158,7 +166,7 @@ __inline void push_policy(void)
 }
 __inline void pop_policy(void)
 {
-#ifdef _POSIX_PRIORITY_SCHEDULING
+#if (defined(_POSIX_PRIORITY_SCHEDULING) && defined(HAVE_SCHED_GETSCHEDULER))
   struct sched_param sp;
   int policy_max;
   if(-1 == (policy_max = sched_get_priority_max(MYSCHED))){
@@ -194,6 +202,7 @@ __inline static void Rhpc_set_options(int rank, int procs, MPI_Comm ccomm)
     ptr = Calloc(1,MPI_Comm);
     PROTECT(com = R_MakeExternalPtr(ptr, R_NilValue, R_NilValue));
     *((MPI_Comm*)R_ExternalPtrAddr(com)) = ccomm;
+    R_RegisterCFinalizer(com, op_comm_free);
     PROTECT(op_ex = LCONS(install("options"),
 			  CONS(ScalarInteger(rank),
 			       CONS(ScalarInteger(procs),

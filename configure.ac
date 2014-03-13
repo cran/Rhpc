@@ -1,5 +1,10 @@
 AC_INIT(src/common/Rhpc.h)
 
+AC_CONFIG_HEADER(src/common/config.h)
+
+AC_CHECK_HEADERS([sched.h sys/types.h unistd.h])
+AC_CHECK_FUNCS([sched_getscheduler])
+
 : ${R_HOME=`R RHOME`}
 
 CHKLIBR=`${R_HOME}/bin${R_ARCH}/R CMD config --ldflags 2>/dev/null`

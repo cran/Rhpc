@@ -33,6 +33,10 @@
 extern int putenv(char *string);
 #endif
 
+#ifndef WIN32
+#include "../common/config.h"
+#endif
+
 #include "../common/Rhpc.h"
 #include "../common/Rhpc_ms.h"
 
