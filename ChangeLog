@@ -1,3 +1,6 @@
+0.14.78         fixed mistake MPI_Comm_c2f was calld after MPI_Finalize.
+		change of schedule(last send only) of Rhpc_lapply.
+
 0.14.72 	add configure option --with-package-dir.
 		fixed problem on i386.
 		schedule change from SCHED_OTHER to SCHED_FIFO.

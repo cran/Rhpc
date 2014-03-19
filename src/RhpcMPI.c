@@ -17,22 +17,32 @@
  */
 
 
+#ifndef WIN32
+#include "common/config.h"
+#endif
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdint.h>
+#ifdef HAVE_GNU_DLADDR
+#  ifndef   _GNU_SOURCE
+#    define _GNU_SOURCE
+#  endif
+#  ifndef   __USE_GNU
+#    define __USE_GNU
+#  endif
+#endif
+#include <dlfcn.h>
+
+#include <sched.h>
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #include <mpi.h>
 #pragma GCC diagnostic warning "-Wunused-parameter"
-#include <dlfcn.h>
-#include <sched.h>
 
 
 #include <R.h>
 #include <Rinternals.h>
-#ifndef WIN32
-#include "common/config.h"
-#endif
 #include "common/Rhpc.h"
 
 static int initialize=0;
@@ -52,6 +62,15 @@ SEXP Rhpc_mpi_initialize(void)
   int *mpi_argc = (int *)&MPI_argc;
   char ***mpi_argv= (char ***)MPI_argv;
 
+#if !(defined(WIN32)||defined(__APPLE__))
+#  ifdef OPEN_MPI
+#    ifdef HAVE_GNU_DLADDR
+  Dl_info info_MPI_Init;
+  int rc ;
+#    endif
+#  endif
+#endif
+
   if(finalize){
     warning("Rhpc were already finalized.");
     return(R_NilValue);
@@ -62,14 +81,26 @@ SEXP Rhpc_mpi_initialize(void)
   }
 
 
-#ifdef OPEN_MPI
-#ifndef __APPLE__
-  if (!dlopen("libmpi.so.0", RTLD_GLOBAL | RTLD_LAZY) && 
-      !dlopen("libmpi.so",   RTLD_GLOBAL | RTLD_LAZY)    ){
+#if !(defined(WIN32)||defined(__APPLE__))
+#  ifdef OPEN_MPI
+#    ifdef HAVE_GNU_DLADDR
+  rc = dladdr((void *)MPI_Init, &info_MPI_Init);
+  if (rc){
+    Rprintf("reload mpi library %s\n", info_MPI_Init.dli_fname );
+    if (!dlopen(info_MPI_Init.dli_fname, RTLD_GLOBAL | RTLD_LAZY)){
+      Rprintf("%s\n",dlerror());
+    }
+  }else{
     Rprintf("%s\n",dlerror());
   }
+#    else
+  if (!dlopen("libmpi.so", RTLD_GLOBAL | RTLD_LAZY)){
+    Rprintf("%s\n",dlerror());
+  }
+#    endif
+#  endif
 #endif
-#endif
+
 #if defined(MPI_VERSION) && (MPI_VERSION >= 2)
   mpi_argc=NULL;
   mpi_argv=NULL;

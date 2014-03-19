@@ -198,7 +198,18 @@ __inline static void Rhpc_set_options(int rank, int procs, MPI_Comm ccomm)
   SEXP com=R_NilValue;
   int errorOccurred=0;
 
+  /* Information */
+  MPI_Fint f_comm=2; /* MPI_COMM_NULL */
+  char host_name[MPI_MAX_PROCESSOR_NAME]="";
+  int  host_name_len;
+
   if(rank != -1){
+    f_comm=MPI_Comm_c2f(ccomm);
+    MPI_Get_processor_name(host_name, &host_name_len);
+
+    Rprintf("rank %5d/%5d(%d) : %-32.32s : %5d\n",
+	    rank, procs, f_comm, host_name, getpid());   
+
     ptr = Calloc(1,MPI_Comm);
     PROTECT(com = R_MakeExternalPtr(ptr, R_NilValue, R_NilValue));
     *((MPI_Comm*)R_ExternalPtrAddr(com)) = ccomm;
@@ -207,7 +218,7 @@ __inline static void Rhpc_set_options(int rank, int procs, MPI_Comm ccomm)
 			  CONS(ScalarInteger(rank),
 			       CONS(ScalarInteger(procs),
 				    CONS(com,
-					 CONS(ScalarInteger(MPI_Comm_c2f(ccomm)),
+					 CONS(ScalarInteger(f_comm),
 					      R_NilValue))))));
   }else{
     PROTECT(com);

@@ -1,3 +1,6 @@
+/* Define to 1 if you have the `dladdr' function. */
+#undef HAVE_GNU_DLADDR
+
 /* Define to 1 if you have the `sched_getscheduler' function. */
 #undef HAVE_SCHED_GETSCHEDULER
 

@@ -5,6 +5,21 @@ AC_CONFIG_HEADER(src/common/config.h)
 AC_CHECK_HEADERS([sched.h sys/types.h unistd.h])
 AC_CHECK_FUNCS([sched_getscheduler])
 
+AC_MSG_CHECKING(for gnu dladdr)
+AC_TRY_COMPILE(
+  [
+#define _GNU_SOURCE
+#include <dlfcn.h>
+  ],[
+Dl_info* info = 0;
+dladdr(0, info);  
+  ],[
+AC_DEFINE([HAVE_GNU_DLADDR],[1],[gnu system have a dladdr in dlfcn.h])
+AC_MSG_RESULT(yes)
+  ],[
+AC_MSG_RESULT(no)
+  ])
+
 : ${R_HOME=`R RHOME`}
 
 CHKLIBR=`${R_HOME}/bin${R_ARCH}/R CMD config --ldflags 2>/dev/null`

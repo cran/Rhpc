@@ -263,6 +263,7 @@ SEXP Rhpc_mpi_lapply_seq(SEXP cl, SEXP X, SEXP args)
       if(stat.MPI_SOURCE != 0){
 	int cmdr[CMDLINESZ];
 	int wkr = stat.MPI_SOURCE;
+	int wkrix =0;
 	int  cmdmainr = 0;
 	int  cmdsubr  = 0;
 	R_xlen_t cntr = 0;
@@ -320,8 +321,11 @@ SEXP Rhpc_mpi_lapply_seq(SEXP cl, SEXP X, SEXP args)
 	}else{ /* SERMODE=0 */
 	  REPROTECT(uns  = Rhpc_unserialize(indata),uns_ix);
 	}
-	SET_VECTOR_ELT(outlist, workersix[wkr], uns );
-	workers[wkr]--;
+	for(wkrix=0 ; wkrix<xlength(uns); wkrix++){
+	  SET_VECTOR_ELT(outlist, (wkr-1)+wkrix*(procs-1), VECTOR_ELT(uns,wkrix) );
+	  REPROTECT(outlist,outlist_ix);
+	}
+	workers[wkr]-=xlength(uns);
 	workersix[wkr]+=procs-1;
 	DPRINT("finish rank=%d ix=%d\n", wkr, workersix[wkr] );
       }

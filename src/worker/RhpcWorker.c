@@ -15,26 +15,33 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+#ifndef WIN32
+#include "../common/config.h"
+#endif
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#ifdef HAVE_GNU_DLADDR
+#  ifndef   _GNU_SOURCE
+#    define _GNU_SOURCE
+#  endif
+#  ifndef   __USE_GNU
+#    define __USE_GNU
+#  endif
+#endif
+#include <dlfcn.h>
+#include <mpi.h>
 #include <Rdefines.h>
 #include <Rembedded.h>
 #include <Rinterface.h>
 #include <Rinternals.h>
 #include <R_ext/Parse.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <dlfcn.h>
-#include <mpi.h>
 #define WORKER 1
 
 
 #if !defined(putenv)
 extern int putenv(char *string);
-#endif
-
-#ifndef WIN32
-#include "../common/config.h"
 #endif
 
 #include "../common/Rhpc.h"
@@ -69,6 +76,15 @@ static void Rhpc_worker_init(void)
   */
   static char buf[4096];
   MPI_Comm pcomm;
+
+#if !(defined(WIN32)||defined(__APPLE__))
+#  ifdef OPEN_MPI
+#    ifdef HAVE_GNU_DLADDR
+  Dl_info info_MPI_Init;
+  int rc ;
+#    endif
+#  endif
+#endif
   
   sprintf(buf, "R_HOME=%s", (R_HOME));
   putenv(buf);
@@ -79,6 +95,27 @@ static void Rhpc_worker_init(void)
   R_Slave              = TRUE;
   R_ReplDLLinit();
   initialize=1;
+
+#if !(defined(WIN32)||defined(__APPLE__))
+#  ifdef OPEN_MPI
+#    ifdef HAVE_GNU_DLADDR
+  rc = dladdr((void *)MPI_Init, &info_MPI_Init);
+  if (rc){
+    Rprintf("reload mpi library %s\n", info_MPI_Init.dli_fname );
+    if (!dlopen(info_MPI_Init.dli_fname, RTLD_GLOBAL | RTLD_LAZY)){
+      Rprintf("%s\n",dlerror());
+    }
+  }else{
+    Rprintf("%s\n",dlerror());
+  }
+#    else
+  if (!dlopen("libmpi.so", RTLD_GLOBAL | RTLD_LAZY)){
+    Rprintf("%s\n",dlerror());
+  }
+#    endif
+#  endif
+#endif
+
 
 #if defined(MPI_VERSION) && MPI_VERSION >= 2
   _M(MPI_Init(NULL, NULL));
@@ -107,7 +144,7 @@ static void Rhpc_worker_init(void)
   DPRINT("worker init\n");
 
   DPRINT("Worker:rank=%d:procs=%d\n", MPI_rank, MPI_procs);
-
+  
   Rhpc_set_options(MPI_rank, MPI_procs, RHPC_Comm);
 
   /*
@@ -176,15 +213,6 @@ static void Rhpc_worker_main(void){
 
 int main(int argc, char	*argv[],char *arge[])
 {
-
-#ifdef OPEN_MPI
-#ifndef __APPLE__
-  if (!dlopen("libmpi.so.0", RTLD_GLOBAL | RTLD_LAZY) && 
-      !dlopen("libmpi.so",   RTLD_GLOBAL | RTLD_LAZY)    ){
-    Rprintf("%s\n",dlerror());
-  }
-#endif
-#endif
 
   Rhpc_worker_init();
   Rhpc_worker_main();
