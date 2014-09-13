@@ -1,7 +1,17 @@
-0.14.78         fixed mistake MPI_Comm_c2f was calld after MPI_Finalize.
+0.14-256	revert maintainer name...>_<
+
+0.14-255	remediation of cofigure script.
+		wrote import function from parallel in NAMESPACE.
+		addition of some documents.
+		changed name author and maintainer.
+
+0.14-156        change of schedule(send each time) of Rhpc_lapply.
+		rename Rhpc_worker_noback (used to Rhpc_worker_shy)
+
+0.14-78         fixed mistake MPI_Comm_c2f was calld after MPI_Finalize.
 		change of schedule(last send only) of Rhpc_lapply.
 
-0.14.72 	add configure option --with-package-dir.
+0.14-72 	add configure option --with-package-dir.
 		fixed problem on i386.
 		schedule change from SCHED_OTHER to SCHED_FIFO.
 		add Rhpc.mpi.rank and Rhpc.mpi.procs set to options.

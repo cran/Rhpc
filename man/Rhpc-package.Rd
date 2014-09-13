@@ -5,6 +5,7 @@
 \alias{Rhpc_getHandle}
 \alias{Rhpc_worker_call}
 \alias{Rhpc_worker_shy}
+\alias{Rhpc_worker_noback}
 \alias{Rhpc_lapply}
 \alias{Rhpc_lapplyLB}
 \alias{Rhpc_numberOfWorker}
@@ -23,7 +24,7 @@ Rhpc_initialize()
 Rhpc_finalize()
 Rhpc_getHandle(procs)
 Rhpc_worker_call(cl, FUN, ...)
-Rhpc_worker_shy(cl, FUN, ...)
+Rhpc_worker_noback(cl, FUN, ...)
 Rhpc_lapply(cl, X, FUN, ...)
 Rhpc_lapplyLB(cl, X, FUN, ...)
 Rhpc_numberOfWorker(cl)
@@ -34,9 +35,20 @@ Rhpc_setupRNG(cl, iseed)
 \arguments{
   \item{cl}{external pointer to MPI communicator}
   \item{procs}{number of process, void if Rhpc}
-  \item{X}{vector or list}
-  \item{FUN}{string of function name or function object}
-  \item{...}{arguments}
+  \item{X}{vector or list.
+    Divided into smaller vectors according to the number of workers, and
+    distributed to workers when the function is first executed. One-sided
+    communication is used asynchronously
+  }
+  \item{FUN}{string of function name or function object.
+    Function name or string (string expresses function name)
+    Distributed by collective communication at first, then they are not
+    sent again
+  }
+  \item{...}{arguments.
+    Distributed by collective communication at first, then they are not
+    sent again
+  }
   \item{variableNames}{string vector} 
   \item{iseed}{random number seed}
   \item{expr}{expression to evaluate}
@@ -50,12 +62,15 @@ Rhpc_setupRNG(cl, iseed)
 \description{
  Rhpc_lapply, Rhpc_lapplyLB and Rhpc_worker_call using MPI provides 
  better HPC environment on R(works fast on HPC).
- Maybe start from the Rhpc batch command is better(faster).
- Because strong mutual concessions(slowly) often occur by sched_yield, we recommend the use with the batch mode...XD
-
- Rhpc batch in package directory.
+ and this package supports long vector, can deal with slightly big data.
 }
 \details{
+  Rhpc batch wrapper in package directory if you use mpirun.
+
+  This package sets \code{"Rhpc.mpi.c.comm"},\code{"Rhpc.mpi.f.comm"},
+  \code{"Rhpc.mpi.rank"} and \code{"Rhpc.mpi.procs"}
+  can get attribute of MPI in getOption().  
+
   \url{http://prs.ism.ac.jp/~nakama/Rhpc}
 }
 \author{

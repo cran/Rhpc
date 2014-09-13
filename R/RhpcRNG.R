@@ -10,7 +10,7 @@ Rhpc_setupRNG <- function(cl, iseed = NULL)
     nc <- Rhpc_numberOfWorker(cl)
     seeds <- vector("list", nc)
     seeds[[1L]] <- .Random.seed
-    for(i in seq_len(nc-1L)) seeds[[i+1L]] <- nextRNGStream(seeds[[i]])
+    for(i in seq_len(nc-1L)) seeds[[i+1L]] <- parallel::nextRNGStream(seeds[[i]])
     ## Reset the random seed in the master.
     if(!is.null(oldseed))
         assign(".Random.seed", oldseed, envir = .GlobalEnv)

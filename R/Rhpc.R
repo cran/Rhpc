@@ -43,6 +43,13 @@ Rhpc_worker_shy <- function(cl,FUN,...)
   invisible(.Call("Rhpc_mpi_worker_call", cl, args, as.integer(0), PACKAGE="Rhpc"))
 }
 
+Rhpc_worker_noback <- function(cl,FUN,...)
+{
+  arg  <- list(...)
+  args <- list(FUN,arg)
+  invisible(.Call("Rhpc_mpi_worker_call", cl, args, as.integer(0), PACKAGE="Rhpc"))
+}
+
 
 Rhpc_lapply <- function(cl, X, FUN, ...)
 {

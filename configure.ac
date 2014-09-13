@@ -1,4 +1,4 @@
-AC_INIT(src/common/Rhpc.h)
+AC_INIT(Rhpc, 0.14, nakama@com-one.com)
 
 AC_CONFIG_HEADER(src/common/config.h)
 
@@ -45,38 +45,72 @@ AC_ARG_WITH(mpicc,
          MPICC=${withval}
     fi  ]	
 )
-AC_ARG_WITH(MPI_INCLUDE,
+AC_ARG_WITH(mpi-cflags,
 [   --with-mpi-cflags=-I/usr/include          Location of mpi.h directory.],
 [   if test "${withval}x" != x; then
          MPI_CFLAGS=${withval}
     fi  ]	
 )
-AC_ARG_WITH(MPI_LIBS,
+AC_ARG_WITH(mpi-ldflags,
 [   --with-mpi-ldflags=          MPI LIBS.],
 [   if test "${withval}x" != x; then
          MPI_LDFLAGS=${withval}
     fi  ]	
 )
-AC_ARG_WITH(RHPC_PACKAGE_DIR,
+AC_ARG_WITH(package-dir,
 [   --with-package-dir=          Top directory of Rhpc package],
 [   if test "${withval}x" != x; then
         MY_PACKAGE_DIR=${withval}
     fi  ]	
 )
 
-if test -z "${MPICC}" ; then
-	MPICC=mpicc
+
+AC_CHECK_PROGS(MPICC, mpicc hcc mpxlc_r mpxlc mpcc cmpicc, $CC)
+mpi_save_CC="$CC"
+CC="$MPICC"
+
+if test -z "${CC}" ; then
 	RCC=`${R_HOME}/bin${R_ARCH}/R CMD config CC 2>/dev/null`
 	argcnt=0
 	for arg in $RCC; do
 		if test $argcnt -eq 0 ; then
 			argcnt=1
 		else
-			MPICC="${MPICC} ${arg}"
+			CC="${CC} ${arg}"
 		fi
 	done
-	echo "configure: MPICC=$MPICC"
+	echo "configure: CC=$CC"
 fi
+
+CFLAGS="$CFLAGS $MPI_CFLAGS"
+LDFLAGS="$LDFLAGS $MPI_LDFLAGS"
+AC_MSG_CHECKING([Compiling of MPI C programs])
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <mpi.h>]],
+[[int main(int argc, char*argv[]){
+    MPI_Init(&argc,&argv);
+    MPI_Finalize();}]])],
+    [AC_MSG_RESULT([yes])],
+    [AC_MSG_RESULT([no])
+     AC_MSG_ERROR([could not compile MPI program!
+!!! This package requires MPI environment.
+!!! See config.log for details])
+    have_mpi_h=no]
+)
+					  
+AC_MSG_CHECKING([Linking of MPI C programs])
+AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <mpi.h>]],
+                 [[ MPI_Init(0, (void *)0); ]])],
+                 [AC_DEFINE([HAVE_MPI], 1, [MPI support])
+                  have_mpi=yes
+                  have_mpi_header=yes],
+                 [have_mpi=no])
+AC_MSG_RESULT($have_mpi)
+if test "$have_mpi" = "no" ; then
+   AC_MSG_ERROR([can not link MPI library.
+!!! This package requires MPI environment.
+!!! See config.log for details])
+fi
+
 
 if test -z "${MY_PACKAGE_DIR}" ; then
 	if test "${RPM_BUILD_ROOT}x" != "x"; then

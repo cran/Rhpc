@@ -97,7 +97,7 @@ static void Rhpc_worker_call(int *cmd, int action)
 
   /* eval */
   errorOccurred=0;
-
+  
   PROTECT(lng = LCONS(Rhpc_docall, CONS(fun,CONS(argq, R_NilValue))));
   ret=R_tryEval(lng, R_GlobalEnv, &errorOccurred);
 
