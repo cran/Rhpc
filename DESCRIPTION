@@ -1,6 +1,6 @@
 Package: Rhpc
-Version: 0.14-256
-Date: 2014-09-13
+Version: 0.14-261
+Date: 2014-09-18
 Title: An R package for High-Performance Computing
 Author: Junji NAKANO <nakanoj@ism.ac.jp> and Eiji NAKAMA<nakama@com-one.com>
 Maintainer: Ei-ji Nakama <nakama@com-one.com>
@@ -15,7 +15,7 @@ OS_type: unix
 URL: http://prs.ism.ac.jp/~nakama/Rhpc/
 BugReports: e-mail:nakama at com-one.com
 ByteCompile: true
-Packaged: 2014-09-13 00:00:05 UTC; nakama
+Packaged: 2014-09-18 07:50:56 UTC; nakama
 NeedsCompilation: yes
 Repository: CRAN
-Date/Publication: 2014-09-12 16:07:16
+Date/Publication: 2014-09-19 09:52:44

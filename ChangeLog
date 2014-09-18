@@ -1,3 +1,9 @@
+0.14-261	optimization of the library reload of openmpi...
+                old version reloaded on worker. but it was not need.
+                get to path of RhpcSpawn at execution on master.
+
+0.14-260	ripair configure script...
+
 0.14-256	revert maintainer name...>_<
 
 0.14-255	remediation of cofigure script.

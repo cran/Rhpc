@@ -40,32 +40,37 @@ else
 fi
 
 AC_ARG_WITH(mpicc,
-[   --with-mpicc=mpicc          Location of mpicc full path.],
+    AC_HELP_STRING([--with-mpicc=MPI_C_WRAPPER_COMPILER],
+                   [MPI C wrapper compiler name or C compiler name.]),
 [   if test "${withval}x" != x; then
          MPICC=${withval}
     fi  ]	
 )
 AC_ARG_WITH(mpi-cflags,
-[   --with-mpi-cflags=-I/usr/include          Location of mpi.h directory.],
+    AC_HELP_STRING([--with-mpi-cflags=ARGS],
+                   [MPI CFLAGS.(cf. "-I/usr/include/openmpi")]),
 [   if test "${withval}x" != x; then
          MPI_CFLAGS=${withval}
     fi  ]	
 )
 AC_ARG_WITH(mpi-ldflags,
-[   --with-mpi-ldflags=          MPI LIBS.],
+    AC_HELP_STRING([--with-mpi-ldflags=ARGS],
+                   [MPI LDFLAGS.(cf. "-L/usr/lib/openmpi -lmpi")]),
 [   if test "${withval}x" != x; then
          MPI_LDFLAGS=${withval}
     fi  ]	
 )
 AC_ARG_WITH(package-dir,
-[   --with-package-dir=          Top directory of Rhpc package],
+    AC_HELP_STRING([--with-package-dir=DIR],
+                   [Top directory of Rhpc package. hard code does the worker-path with the shell in Rhpc and RhpcSpawn. (maybe need binary package build of distribution)]),
 [   if test "${withval}x" != x; then
         MY_PACKAGE_DIR=${withval}
     fi  ]	
 )
 
-
-AC_CHECK_PROGS(MPICC, mpicc hcc mpxlc_r mpxlc mpcc cmpicc, $CC)
+if test -z "${MPICC}" ; then
+   AC_CHECK_PROGS(MPICC, mpicc hcc mpxlc_r mpxlc mpcc cmpicc mpifcc $CC)
+fi
 mpi_save_CC="$CC"
 CC="$MPICC"
 
@@ -86,9 +91,8 @@ CFLAGS="$CFLAGS $MPI_CFLAGS"
 LDFLAGS="$LDFLAGS $MPI_LDFLAGS"
 AC_MSG_CHECKING([Compiling of MPI C programs])
 AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <mpi.h>]],
-[[int main(int argc, char*argv[]){
-    MPI_Init(&argc,&argv);
-    MPI_Finalize();}]])],
+[[  MPI_Init(0,(void *)0);
+    MPI_Finalize();]])],
     [AC_MSG_RESULT([yes])],
     [AC_MSG_RESULT([no])
      AC_MSG_ERROR([could not compile MPI program!
@@ -119,16 +123,6 @@ if test -z "${MY_PACKAGE_DIR}" ; then
 		MY_PACKAGE_DIR=${R_PACKAGE_DIR}
 	fi
 fi
-
-#case "${host_os}" in
-#  *-*-solaris*)
-#	RPATH="-Wl,-R,"
-#	;;
-#  *)
-#	RPATH="-Wl,-rpath,"
-#esac
-
-
 
 R_HOME=${R_HOME}
 R_ARCH=${R_ARCH}

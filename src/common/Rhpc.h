@@ -84,7 +84,7 @@ SEXP Rhpc_serialize(SEXP);
 SEXP Rhpc_unserialize(SEXP);
 
 #if !defined(WORKER) /* master only */
-static char RHPC_WORKER_CMD[]={MY_PACKAGE_DIR "/RhpcSpawn"};
+static char RHPC_WORKER_CMD[4096];
 #endif
 #define RHPC_SPLIT_SIZE (1UL<<24)
 #define CMDLINESZ 4

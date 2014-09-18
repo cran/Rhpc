@@ -78,6 +78,9 @@ static void Rhpc_worker_init(void)
   MPI_Comm pcomm;
 
 #if !(defined(WIN32)||defined(__APPLE__))
+  void *dlh = NULL;
+  void *dls = NULL;
+  int failmpilib;
 #  ifdef OPEN_MPI
 #    ifdef HAVE_GNU_DLADDR
   Dl_info info_MPI_Init;
@@ -97,23 +100,33 @@ static void Rhpc_worker_init(void)
   initialize=1;
 
 #if !(defined(WIN32)||defined(__APPLE__))
-#  ifdef OPEN_MPI
-#    ifdef HAVE_GNU_DLADDR
-  rc = dladdr((void *)MPI_Init, &info_MPI_Init);
-  if (rc){
-    Rprintf("reload mpi library %s\n", info_MPI_Init.dli_fname );
-    if (!dlopen(info_MPI_Init.dli_fname, RTLD_GLOBAL | RTLD_LAZY)){
+  if ( NULL != (dlh=dlopen(NULL, RTLD_NOW|RTLD_GLOBAL))){
+    if(NULL != (dls = dlsym( dlh, "MPI_Init")))
+      failmpilib = 0; /* success loaded MPI library */
+    else
+      failmpilib = 1; /* maybe can't loaded MPI library */
+    dlclose(dlh);
+  }
+  
+  if( failmpilib ){
+#  ifdef HAVE_GNU_DLADDR
+    /* maybe get beter soname */
+    rc = dladdr((void *)MPI_Init, &info_MPI_Init);
+    if (rc){
+      Rprintf("reload mpi library %s\n", info_MPI_Init.dli_fname );
+      if (!dlopen(info_MPI_Init.dli_fname, RTLD_GLOBAL | RTLD_LAZY)){
+	Rprintf("%s\n",dlerror());
+      }
+    }else{
       Rprintf("%s\n",dlerror());
     }
-  }else{
-    Rprintf("%s\n",dlerror());
-  }
-#    else
-  if (!dlopen("libmpi.so", RTLD_GLOBAL | RTLD_LAZY)){
-    Rprintf("%s\n",dlerror());
-  }
-#    endif
+#  else
+    /* case soname and realname even  */
+    if (!dlopen("libmpi.so", RTLD_GLOBAL | RTLD_LAZY)){
+      Rprintf("%s\n",dlerror());
+    }
 #  endif
+  }
 #endif
 
 

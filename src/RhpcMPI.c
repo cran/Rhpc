@@ -63,6 +63,9 @@ SEXP Rhpc_mpi_initialize(void)
   char ***mpi_argv= (char ***)MPI_argv;
 
 #if !(defined(WIN32)||defined(__APPLE__))
+  void *dlh = NULL;
+  void *dls = NULL;
+  int failmpilib;
 #  ifdef OPEN_MPI
 #    ifdef HAVE_GNU_DLADDR
   Dl_info info_MPI_Init;
@@ -82,23 +85,33 @@ SEXP Rhpc_mpi_initialize(void)
 
 
 #if !(defined(WIN32)||defined(__APPLE__))
-#  ifdef OPEN_MPI
-#    ifdef HAVE_GNU_DLADDR
-  rc = dladdr((void *)MPI_Init, &info_MPI_Init);
-  if (rc){
-    Rprintf("reload mpi library %s\n", info_MPI_Init.dli_fname );
-    if (!dlopen(info_MPI_Init.dli_fname, RTLD_GLOBAL | RTLD_LAZY)){
+  if ( NULL != (dlh=dlopen(NULL, RTLD_NOW|RTLD_GLOBAL))){
+    if(NULL != (dls = dlsym( dlh, "MPI_Init")))
+      failmpilib = 0; /* success loaded MPI library */
+    else
+      failmpilib = 1; /* maybe can't loaded MPI library */
+    dlclose(dlh);
+  }
+  
+  if( failmpilib ){
+#  ifdef HAVE_GNU_DLADDR
+    /* maybe get beter soname */
+    rc = dladdr((void *)MPI_Init, &info_MPI_Init);
+    if (rc){
+      Rprintf("reload mpi library %s\n", info_MPI_Init.dli_fname );
+      if (!dlopen(info_MPI_Init.dli_fname, RTLD_GLOBAL | RTLD_LAZY)){
+	Rprintf("%s\n",dlerror());
+      }
+    }else{
       Rprintf("%s\n",dlerror());
     }
-  }else{
-    Rprintf("%s\n",dlerror());
-  }
-#    else
-  if (!dlopen("libmpi.so", RTLD_GLOBAL | RTLD_LAZY)){
-    Rprintf("%s\n",dlerror());
-  }
-#    endif
+#     else
+    /* case soname and realname even  */
+    if (!dlopen("libmpi.so", RTLD_GLOBAL | RTLD_LAZY)){
+      Rprintf("%s\n",dlerror());
+    }
 #  endif
+  }
 #endif
 
 #if defined(MPI_VERSION) && (MPI_VERSION >= 2)
@@ -115,7 +128,19 @@ SEXP Rhpc_mpi_initialize(void)
   RHPC_Comm = MPI_COMM_WORLD;
   Rhpc_set_options( MPI_rank, MPI_procs,RHPC_Comm);
 
+  if (MPI_rank == 0){ /* Master : get RhpcSpawn path*/
+    int  errorOccurred=0;
+    SEXP ret;
+    SEXP cmdSexp, cmdexpr;
+    ParseStatus status;
 
+    PROTECT(cmdSexp = allocVector(STRSXP, 1));
+    SET_STRING_ELT(cmdSexp, 0, mkChar("system.file('RhpcSpawn',package='Rhpc')"));
+    PROTECT( cmdexpr = R_ParseVector(cmdSexp, -1, &status, R_NilValue));
+    ret=R_tryEval(VECTOR_ELT(cmdexpr,0), R_GlobalEnv, &errorOccurred);
+    strncpy(RHPC_WORKER_CMD, CHAR(STRING_ELT(ret,0)), sizeof(RHPC_WORKER_CMD));
+    UNPROTECT(2);
+  }
 
   initialize = 1;
   return(R_NilValue);

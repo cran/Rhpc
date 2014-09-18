@@ -1306,10 +1306,13 @@ if test -n "$ac_init_help"; then
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
-   --with-mpicc=mpicc          Location of mpicc full path.
-   --with-mpi-cflags=-I/usr/include          Location of mpi.h directory.
-   --with-mpi-ldflags=          MPI LIBS.
-   --with-package-dir=          Top directory of Rhpc package
+  --with-mpicc=MPI_C_WRAPPER_COMPILER
+                          MPI C wrapper compiler name or C compiler name.
+  --with-mpi-cflags=ARGS  MPI CFLAGS.(cf. "-I/usr/include/openmpi")
+  --with-mpi-ldflags=ARGS MPI LDFLAGS.(cf. "-L/usr/lib/openmpi -lmpi")
+  --with-package-dir=DIR  Top directory of Rhpc package. hard code does the
+                          worker-path with the shell in Rhpc and RhpcSpawn.
+                          (maybe need binary package build of distribution)
 
 Some influential environment variables:
   CC          C compiler command
@@ -3414,8 +3417,8 @@ if test "${with_package_dir+set}" = set; then :
 fi
 
 
-
-for ac_prog in mpicc hcc mpxlc_r mpxlc mpcc cmpicc
+if test -z "${MPICC}" ; then
+   for ac_prog in mpicc hcc mpxlc_r mpxlc mpcc cmpicc mpifcc $CC
 do
   # Extract the first word of "$ac_prog", so it can be a program name with args.
 set dummy $ac_prog; ac_word=$2
@@ -3456,8 +3459,8 @@ fi
 
   test -n "$MPICC" && break
 done
-test -n "$MPICC" || MPICC="$CC"
 
+fi
 mpi_save_CC="$CC"
 CC="$MPICC"
 
@@ -3484,9 +3487,8 @@ cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 int
 main ()
 {
-int main(int argc, char*argv[]){
-    MPI_Init(&argc,&argv);
-    MPI_Finalize();}
+  MPI_Init(0,(void *)0);
+    MPI_Finalize();
   ;
   return 0;
 }
@@ -3545,16 +3547,6 @@ if test -z "${MY_PACKAGE_DIR}" ; then
 		MY_PACKAGE_DIR=${R_PACKAGE_DIR}
 	fi
 fi
-
-#case "${host_os}" in
-#  *-*-solaris*)
-#	RPATH="-Wl,-R,"
-#	;;
-#  *)
-#	RPATH="-Wl,-rpath,"
-#esac
-
-
 
 R_HOME=${R_HOME}
 R_ARCH=${R_ARCH}
