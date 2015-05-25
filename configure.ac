@@ -1,11 +1,11 @@
-AC_INIT(Rhpc, 0.14, nakama@com-one.com)
+AC_INIT(Rhpc, 0.15, nakama@com-one.com)
 
 AC_CONFIG_HEADER(src/common/config.h)
 
 AC_CHECK_HEADERS([sched.h sys/types.h unistd.h])
 AC_CHECK_FUNCS([sched_getscheduler])
 
-AC_MSG_CHECKING(for gnu dladdr)
+AC_MSG_CHECKING(for dladdr)
 AC_TRY_COMPILE(
   [
 #define _GNU_SOURCE
@@ -14,7 +14,7 @@ AC_TRY_COMPILE(
 Dl_info* info = 0;
 dladdr(0, info);  
   ],[
-AC_DEFINE([HAVE_GNU_DLADDR],[1],[gnu system have a dladdr in dlfcn.h])
+AC_DEFINE([HAVE_DLADDR],[1],[this system have a dladdr in dlfcn.h])
 AC_MSG_RESULT(yes)
   ],[
 AC_MSG_RESULT(no)
@@ -65,14 +65,12 @@ AC_ARG_WITH(package-dir,
                    [Top directory of Rhpc package. hard code does the worker-path with the shell in Rhpc and RhpcSpawn. (maybe need binary package build of distribution)]),
 [   if test "${withval}x" != x; then
         MY_PACKAGE_DIR=${withval}
-    fi  ]	
+    fi  ]
 )
 
 if test -z "${MPICC}" ; then
-   AC_CHECK_PROGS(MPICC, mpicc hcc mpxlc_r mpxlc mpcc cmpicc mpifcc $CC)
+   AC_CHECK_PROGS(MPICC, mpicc hcc mpxlc_r mpxlc mpcc cmpicc mpifcc)
 fi
-mpi_save_CC="$CC"
-CC="$MPICC"
 
 if test -z "${CC}" ; then
 	RCC=`${R_HOME}/bin${R_ARCH}/R CMD config CC 2>/dev/null`
@@ -85,6 +83,26 @@ if test -z "${CC}" ; then
 		fi
 	done
 	echo "configure: CC=$CC"
+fi
+
+if test ! -z "${MPICC}" && test -z "${MPI_CFLAGS}" ; then
+   MPI_CFLAGS=`${MPICC} -showme:compile 2>/dev/null`
+   MPI_LDFLAGS=`${MPICC} -showme:link 2>/dev/null`
+fi
+
+if test ! -z "${MPICC}" && test -z "${MPI_CFLAGS}" ; then
+   MPI_CFLAGS=`${MPICC} -showme 2>/dev/null`
+   MPI_LDFLAGS=`${MPICC} -showme 2>/dev/null`
+fi
+
+if test ! -z "${MPICC}" && test -z "${MPI_CFLAGS}" ; then
+   MPI_CFLAGS=`${MPICC} -show  2>/dev/null| xargs -n 1|sed -e '1d'|xargs`
+   MPI_LDFLAGS=`${MPICC} -show  2>/dev/null| xargs -n 1|sed -e '1d'|xargs`
+fi
+
+if test -z "${MPI_CFLAGS}" && test ! -z "${MPI_ROOT}"; then
+   MPI_CFLAGS="-I${MPI_ROOT}/include"
+   MPI_LDFLAGS="-L${MPI_ROOT}/lib -lmpi"
 fi
 
 CFLAGS="$CFLAGS $MPI_CFLAGS"

@@ -17,12 +17,14 @@
  */
 #ifndef WIN32
 #include "../common/config.h"
+#else
+#include <windows.h>
 #endif
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#ifdef HAVE_GNU_DLADDR
+#ifdef HAVE_DLADDR
 #  ifndef   _GNU_SOURCE
 #    define _GNU_SOURCE
 #  endif
@@ -30,19 +32,27 @@
 #    define __USE_GNU
 #  endif
 #endif
+#ifndef WIN32
 #include <dlfcn.h>
-#include <mpi.h>
-#include <Rdefines.h>
+#endif
 #include <Rembedded.h>
+#ifdef WIN32
+#undef ERROR
+#endif
+#include <Rdefines.h>
+#ifndef WIN32
 #include <Rinterface.h>
+#endif
 #include <Rinternals.h>
 #include <R_ext/Parse.h>
 #define WORKER 1
+#include <mpi.h>
 
-
+/*
 #if !defined(putenv)
 extern int putenv(char *string);
 #endif
+*/
 
 #include "../common/Rhpc.h"
 #include "../common/Rhpc_ms.h"
@@ -73,25 +83,25 @@ static void Rhpc_worker_init(void)
 {
   /*
     int  errorOccurred=0;
+    static char buf[4096];
   */
-  static char buf[4096];
   MPI_Comm pcomm;
+  int mpi_version, mpi_subversion;
 
-#if !(defined(WIN32)||defined(__APPLE__))
+#if defined(__ELF__)
   void *dlh = NULL;
   void *dls = NULL;
   int failmpilib;
-#  ifdef OPEN_MPI
-#    ifdef HAVE_GNU_DLADDR
-  Dl_info info_MPI_Init;
-  int rc ;
-#    endif
-#  endif
+# ifdef HAVE_DLADDR
+    Dl_info info_MPI_Init;
+    int rc ;
+# endif
 #endif
-  
+
+    /*
   sprintf(buf, "R_HOME=%s", (R_HOME));
   putenv(buf);
-  
+    */
     
   Rf_initEmbeddedR(MPI_argc, MPI_argv);
   R_Interactive        = FALSE;
@@ -99,7 +109,7 @@ static void Rhpc_worker_init(void)
   R_ReplDLLinit();
   initialize=1;
 
-#if !(defined(WIN32)||defined(__APPLE__))
+#if defined(__ELF__)
   if ( NULL != (dlh=dlopen(NULL, RTLD_NOW|RTLD_GLOBAL))){
     if(NULL != (dls = dlsym( dlh, "MPI_Init")))
       failmpilib = 0; /* success loaded MPI library */
@@ -109,46 +119,41 @@ static void Rhpc_worker_init(void)
   }
   
   if( failmpilib ){
-#  ifdef HAVE_GNU_DLADDR
-    /* maybe get beter soname */
-    rc = dladdr((void *)MPI_Init, &info_MPI_Init);
-    if (rc){
-      Rprintf("reload mpi library %s\n", info_MPI_Init.dli_fname );
-      if (!dlopen(info_MPI_Init.dli_fname, RTLD_GLOBAL | RTLD_LAZY)){
-	Rprintf("%s\n",dlerror());
+#   ifdef HAVE_DLADDR
+      /* maybe get beter soname */
+      rc = dladdr((void *)MPI_Init, &info_MPI_Init);
+      if (rc){
+	Rprintf("reload mpi library %s\n", info_MPI_Init.dli_fname );
+	if (!dlopen(info_MPI_Init.dli_fname, RTLD_GLOBAL | RTLD_LAZY)){
+	  Rprintf("%s\n",dlerror());
+	}
+      }else{
+	Rprintf("Can't get Information by dladdr of function MPI_Init,%s\n",
+		dlerror());
       }
-    }else{
-      Rprintf("%s\n",dlerror());
-    }
-#  else
-    /* case soname and realname even  */
-    if (!dlopen("libmpi.so", RTLD_GLOBAL | RTLD_LAZY)){
-      Rprintf("%s\n",dlerror());
-    }
-#  endif
+#   else
+      Rprintf("Can't get Information by dlsym of function MPI_Init,%s\n",
+	      dlerror());
+#   endif
   }
 #endif
 
+  MPI_Get_version(&mpi_version, &mpi_subversion);
+  if( mpi_version >= 2)
+    _M(MPI_Init(NULL, NULL));
+  else
+    _M(MPI_Init((int *)&MPI_argc, (char ***)&MPI_argv));
+  _M(MPI_Comm_set_errhandler(MPI_COMM_WORLD, MPI_ERRORS_RETURN));
+  _M(MPI_Comm_set_errhandler(MPI_COMM_SELF, MPI_ERRORS_RETURN));
 
-#if defined(MPI_VERSION) && MPI_VERSION >= 2
-  _M(MPI_Init(NULL, NULL));
-#else
-  _M(MPI_Init((int *)&MPI_argc, (char ***)&MPI_argv));
-#endif
-  _M(MPI_Errhandler_set(MPI_COMM_WORLD, MPI_ERRORS_RETURN));
-  _M(MPI_Errhandler_set(MPI_COMM_SELF, MPI_ERRORS_RETURN));
-
-  if(!getenv("USE_RHPC")){
-    _M(MPI_Comm_get_parent(&pcomm));
-    if (pcomm == MPI_COMM_NULL){
-      RHPC_Comm=MPI_COMM_WORLD;
-    }else{/* if worker */
-      _M(MPI_Intercomm_merge( pcomm, 1, &RHPC_Comm ));
-      _M(MPI_Comm_free(&pcomm));
-      _M(MPI_Errhandler_set(RHPC_Comm, MPI_ERRORS_RETURN));
-    }
-  }else{/* no spawn */
+  pcomm = MPI_COMM_NULL;
+  _M(MPI_Comm_get_parent(&pcomm));
+  if (pcomm == MPI_COMM_NULL){
     RHPC_Comm=MPI_COMM_WORLD;
+  }else{/* if worker */
+    _M(MPI_Intercomm_merge( pcomm, 1, &RHPC_Comm ));
+    _M(MPI_Comm_free(&pcomm));
+    _M(MPI_Comm_set_errhandler(RHPC_Comm, MPI_ERRORS_RETURN));
   }
   
   _M(MPI_Comm_rank(RHPC_Comm, &MPI_rank));
@@ -223,13 +228,10 @@ static void Rhpc_worker_main(void){
   pop_policy();
 }
 
-
 int main(int argc, char	*argv[],char *arge[])
 {
-
   Rhpc_worker_init();
   Rhpc_worker_main();
   Rhcp_worker_finalize();
   return(0);
 }
-

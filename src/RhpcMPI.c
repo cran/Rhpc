@@ -25,7 +25,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdint.h>
-#ifdef HAVE_GNU_DLADDR
+#ifdef HAVE_DLADDR
 #  ifndef   _GNU_SOURCE
 #    define _GNU_SOURCE
 #  endif
@@ -33,9 +33,12 @@
 #    define __USE_GNU
 #  endif
 #endif
-#include <dlfcn.h>
 
+#ifndef WIN32
+#include <dlfcn.h>
 #include <sched.h>
+#endif
+
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #include <mpi.h>
 #pragma GCC diagnostic warning "-Wunused-parameter"
@@ -61,17 +64,17 @@ SEXP Rhpc_mpi_initialize(void)
 {
   int *mpi_argc = (int *)&MPI_argc;
   char ***mpi_argv= (char ***)MPI_argv;
+  int mpi_version = 0;
+  int mpi_subversion = 0;
 
-#if !(defined(WIN32)||defined(__APPLE__))
+#if defined(__ELF__)
   void *dlh = NULL;
   void *dls = NULL;
   int failmpilib;
-#  ifdef OPEN_MPI
-#    ifdef HAVE_GNU_DLADDR
-  Dl_info info_MPI_Init;
-  int rc ;
-#    endif
-#  endif
+# ifdef HAVE_DLADDR
+    Dl_info info_MPI_Init;
+    int rc ;
+# endif
 #endif
 
   if(finalize){
@@ -84,7 +87,7 @@ SEXP Rhpc_mpi_initialize(void)
   }
 
 
-#if !(defined(WIN32)||defined(__APPLE__))
+#if defined(__ELF__)
   if ( NULL != (dlh=dlopen(NULL, RTLD_NOW|RTLD_GLOBAL))){
     if(NULL != (dls = dlsym( dlh, "MPI_Init")))
       failmpilib = 0; /* success loaded MPI library */
@@ -94,33 +97,33 @@ SEXP Rhpc_mpi_initialize(void)
   }
   
   if( failmpilib ){
-#  ifdef HAVE_GNU_DLADDR
-    /* maybe get beter soname */
-    rc = dladdr((void *)MPI_Init, &info_MPI_Init);
-    if (rc){
-      Rprintf("reload mpi library %s\n", info_MPI_Init.dli_fname );
-      if (!dlopen(info_MPI_Init.dli_fname, RTLD_GLOBAL | RTLD_LAZY)){
-	Rprintf("%s\n",dlerror());
+#   ifdef HAVE_DLADDR
+      /* maybe get beter soname */
+      rc = dladdr((void *)MPI_Init, &info_MPI_Init);
+      if (rc){
+        Rprintf("reload mpi library %s\n", info_MPI_Init.dli_fname );
+        if (!dlopen(info_MPI_Init.dli_fname, RTLD_GLOBAL | RTLD_LAZY)){
+  	  Rprintf("%s\n",dlerror());
+        }
+      }else{
+        Rprintf("Can't get Information by dladdr of function MPI_Init,%s\n",
+		dlerror());
       }
-    }else{
-      Rprintf("%s\n",dlerror());
-    }
-#     else
-    /* case soname and realname even  */
-    if (!dlopen("libmpi.so", RTLD_GLOBAL | RTLD_LAZY)){
-      Rprintf("%s\n",dlerror());
-    }
-#  endif
+#   else
+      Rprintf("Can't get Information by dlsym of function MPI_Init,%s\n",
+	      dlerror());
+#   endif
   }
 #endif
 
-#if defined(MPI_VERSION) && (MPI_VERSION >= 2)
-  mpi_argc=NULL;
-  mpi_argv=NULL;
-#endif
+  MPI_Get_version(&mpi_version, &mpi_subversion);
+  if ( mpi_version >= 2){
+    mpi_argc=NULL;
+    mpi_argv=NULL;
+  }
   _M(MPI_Init(mpi_argc, mpi_argv));
-  _M(MPI_Errhandler_set(MPI_COMM_WORLD, MPI_ERRORS_RETURN));
-  _M(MPI_Errhandler_set(MPI_COMM_SELF, MPI_ERRORS_RETURN));
+  _M(MPI_Comm_set_errhandler(MPI_COMM_WORLD, MPI_ERRORS_RETURN));
+  _M(MPI_Comm_set_errhandler(MPI_COMM_SELF, MPI_ERRORS_RETURN));
   _M(MPI_Comm_rank(MPI_COMM_WORLD, &MPI_rank));
   _M(MPI_Comm_size(MPI_COMM_WORLD, &MPI_procs));
   DPRINT("Rhpc_initialize : rank:%d size:%d\n", MPI_rank, MPI_procs);
@@ -186,7 +189,7 @@ SEXP Rhpc_gethandle(SEXP procs)
   R_RegisterCFinalizer(com, comm_free);
   SXP2COMM(com) = RHPC_Comm;
 
-  if (getenv("USE_RHPC")){/* use mpirun */
+  if (num_procs == NA_INTEGER){/* use mpirun */
     _M(MPI_Comm_size(SXP2COMM(com), &num));
     Rprintf("Detected communication size %d\n", num);
     if( num > 1 ){
@@ -194,8 +197,11 @@ SEXP Rhpc_gethandle(SEXP procs)
 	warning("blind procs argument, return of MPI_COMM_WORLD");
       }
     }else{
+      if ( num == 1){
+	warning("only current master process. not found worker process.");
+      }
       SXP2COMM(com)=MPI_COMM_NULL;
-      warning("require mpirun or mpiexec with shell for Rhpc");
+      warning("please pecifies the number of processes in mpirun or mpiexec, or provide a number of process to spawn");
     }
     UNPROTECT(1);
     return(com);
@@ -220,7 +226,7 @@ SEXP Rhpc_gethandle(SEXP procs)
   _M(MPI_Comm_free( &pcomm ));
   _M(MPI_Comm_size(SXP2COMM(com), &num));
   RHPC_Comm = SXP2COMM(com); /* rewrite RHPC_Comm */
-  _M(MPI_Errhandler_set(RHPC_Comm, MPI_ERRORS_RETURN));
+  _M(MPI_Comm_set_errhandler(RHPC_Comm, MPI_ERRORS_RETURN));
   _M(MPI_Comm_rank(RHPC_Comm, &MPI_rank));
   _M(MPI_Comm_size(RHPC_Comm, &MPI_procs));
   DPRINT("Rhpc_getHandle(MPI_Comm_spawn : rank:%d size:%d\n", MPI_rank, MPI_procs);

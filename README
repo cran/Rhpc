@@ -1,0 +1,54 @@
+!!! This package require MPI Library. !!!
+
+
+<<program launch>>
+
+  <*nix OS's>
+   Generated in the package top directory, please use the Rhpc shell.
+
+   ex.
+     $ mpirun -n 4 ~/R/x86_64-unknown-linux-gnu-library/3.2/Rhpc/Rhpc CMD BATCH -q --no-save test.R
+
+   MPI_Comm_Spawn if available,
+   ex.
+     $ R -q
+     > library(Rhpc)
+     > Rhpc_initialize()
+     > cl<-Rhpc_getHandle(4)    # set number of workers
+     > Rhpc_worker_call(cl,Sys.getpid)
+     [[1]]
+     [1] 10571
+     
+     [[2]]
+     [1] 10572
+     
+     [[3]]
+     [1] 10573
+     
+     [[4]]
+     [1] 10574
+     
+     > Rhpc_finalize()
+     > q("no")
+   
+
+  <MS-Windows>
+     please get and install MS-MPI
+     http://www.microsoft.com/en-us/download/details.aspx?id=47259
+  
+     
+     Installed in the package top directory, please look and use the Rhpc*.cmd shell.
+
+     ex. lunch Rgui(x64)
+       Click %USERPROFILE%\Documents\R\win-binary\3.2\Rhpc\RhpcWin64.cmd
+     follow input 
+     > library(Rhpc)
+     > Rhpc_initialize()
+     > cl<-Rhpc_getHandle()
+     > Rhpc_worker_call(cl,Sys.getpid)
+     > Rhpc_finalize()
+     > q("no")
+     
+     ex. lunch batch(x64)
+     C:> %USERPROFILE%\Documents\R\win-binary\3.2\Rhpc\Rhpc64.cmd BATCH test.R
+

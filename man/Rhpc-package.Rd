@@ -57,7 +57,7 @@ Rhpc_setupRNG(cl, iseed)
 }
 \docType{package}
 \title{
-  A package for High-Performance Computing
+  permits *apply() style dispatch for HPC
 }
 \description{
  Rhpc_lapply, Rhpc_lapplyLB and Rhpc_worker_call using MPI provides 

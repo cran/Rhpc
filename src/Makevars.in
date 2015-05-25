@@ -1,8 +1,5 @@
-MPICC = @MPICC@
-override	CC := @MPICC@
-override	SHLIB_LD := @MPICC@
 SUBDIRS = worker 
-PKG_CFLAGS=-DMY_PACKAGE_DIR='"@MY_PACKAGE_DIR@"' @MPI_CFLAGS@
+PKG_CFLAGS=@MPI_CFLAGS@
 PKG_LIBS=@MPI_LDFLAGS@
 
 SOURCES_C = RhpcMPI.c RhpcSerialize.c
@@ -10,8 +7,6 @@ OBJECTS = $(SOURCES_C:.c=.o)
 MKCONF = $(R_HOME)/etc${R_ARCH}/Makeconf
 
 all: $(SHLIB) subdirs
-
-$(SHLIB): $(OBJECTS)
 
 clean: subdirsclean
 	@-rm -f $(OBJECTS) $(SHLIB)

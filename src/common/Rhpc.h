@@ -11,6 +11,10 @@
 #include <unistd.h>
 #endif
 
+#if WIN32
+#include <process.h>
+#define getpid _getpid
+#endif
 
 
 #if 0

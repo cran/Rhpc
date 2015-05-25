@@ -1,0 +1,57 @@
+MPI_TYPE=MSMPI
+ifeq "$(MPI_TYPE)" "MSMPI"
+XMSMPI_INC=$(shell cygpath -s -m '${MSMPI_INC}')
+XMSMPI_LIB32=$(shell cygpath -s -m '${MSMPI_LIB32}')
+XMSMPI_LIB64=$(shell cygpath -s -m '${MSMPI_LIB64}')
+ifeq "$(WIN)" "64"
+ARCH=amd64
+NM=nm
+MPILIBA=libmsmpi64.a
+PKG_CFLAGS= -DMSMPI_NO_SAL -I$(XMSMPI_INC) -DMSMPI_NO_DEPRECATE_20
+#PKG_LIBS= "$(XMSMPI_LIB64)/msmpi.lib" -ladvapi32
+PKG_LIBS= $(MPILIBA) -ladvapi32 
+else
+ARCH=i386
+NM=nm
+MPILIBA=libmsmpi32.a
+PKG_CFLAGS= -DMSMPI_NO_SAL -I$(XMSMPI_INC) -DMSMPI_NO_DEPRECATE_20
+PKG_LIBS= "$(XMSMPI_LIB32)/msmpi.lib" -ladvapi32
+endif
+endif
+
+SUBDIRS = worker
+SOURCES_C = RhpcMPI.c RhpcSerialize.c
+OBJECTS = $(SOURCES_C:.c=.o)
+MKCONF = $(R_HOME)/etc$(R_ARCH)/Makeconf
+
+ifeq "$(WIN)" "64"
+all: $(MPILIBA) $(SHLIB) subdirs
+else
+all: $(SHLIB) subdirs
+endif
+
+$(SHLIB): $(OBJECTS)
+
+libmsmpi64.a: msmpi64.def
+	 $(DLLTOOL) -d msmpi64.def -k -l libmsmpi64.a -D msmpi.dll $(DT_ARCH)
+
+msmpi64.def:
+	@echo 'LIBRARY "msmpi.dll"' > msmpi64.def
+	@echo 'EXPORTS'            >> msmpi64.def
+	@(cd "$(XMSMPI_LIB64)"; $(NM) msmpi.lib 2>NUL |grep ' T '|sed -e '/ T .text/d' |cut -d ' ' -f 3|sed -e 's/@.*$$//; s/^_//; s/^\?//' ) >> msmpi64.def
+
+
+clean: subdirsclean
+	@-rm -f $(OBJECTS) $(SHLIB) libmsmpi64.a
+
+subdirs: subdirsclean
+	@for d in $(SUBDIRS); do \
+		(cd $${d} && $(MAKE) -f Makefile.win MKCONF=$(MKCONF) )|| exit 1;\
+	done
+
+subdirsclean:
+	@for d in $(SUBDIRS); do \
+		(cd $${d} && $(MAKE) -f Makefile.win MKCONF=$(MKCONF) clean)|| exit 1; \
+	done
+
+

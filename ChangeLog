@@ -1,3 +1,13 @@
+0.15-145	Windows of support by experimental MS-MPI.
+
+0.15-55		omit getenv.
+
+0.15-30		forget export environment R_HOME and R_ARCH.
+
+0.14-359	replace deprecated(MPI-1) function.
+
+0.14-272	fixed problem MPICH.
+
 0.14-261	optimization of the library reload of openmpi...
                 old version reloaded on worker. but it was not need.
                 get to path of RhpcSpawn at execution on master.

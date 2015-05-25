@@ -4,7 +4,7 @@ Rhpc_initialize <- function()
   invisible(.Call("Rhpc_mpi_initialize", PACKAGE="Rhpc"))
 }
 
-Rhpc_getHandle <- function(procs=0)
+Rhpc_getHandle <- function(procs=NA)
 {
   cl<-.Call("Rhpc_gethandle", as.integer(procs), PACKAGE="Rhpc")
   Rhpc_setupRNG(cl)
