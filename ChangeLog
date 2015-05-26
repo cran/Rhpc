@@ -1,3 +1,5 @@
+0.15-146	repair Makevars.win and Makefine.win
+
 0.15-145	Windows of support by experimental MS-MPI.
 
 0.15-55		omit getenv.

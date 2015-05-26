@@ -74,7 +74,7 @@ Rhpc_setupRNG(cl, iseed)
   \url{http://prs.ism.ac.jp/~nakama/Rhpc}
 }
 \author{
-  Junji Nakano <nakanoj@ism.ac.jp> and Ei-ji Nakama<nakama@com-one.com>
+  Junji NAKANO <nakanoj@ism.ac.jp> and Ei-ji Nakama<nakama@com-one.com>
  
   Maintainer: Ei-ji Nakama <nakama@com-one.com>
 }

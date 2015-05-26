@@ -18,4 +18,10 @@ rm -f src/worker/Makefile
 rm -f src/worker/Rhpc
 rm -f src/worker/RhpcSpawn
 rm -f src/worker/RhpcWorker
+rm -f RhpcWin64.cmd
+rm -f RhpcWin32.cmd
+rm -f Rhpc64.cmd
+rm -f Rhpc32.cmd
+rm -f RhpcWorker64.exe
+rm -f RhpcWorker32.exe
 

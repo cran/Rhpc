@@ -2,9 +2,9 @@ include $(MKCONF)
 
 MPI_TYPE=MSMPI
 ifeq "$(MPI_TYPE)" "MSMPI"
-XMSMPI_INC=$(shell cygpath -s -m '${MSMPI_INC}')
-XMSMPI_LIB32=$(shell cygpath -s -m '${MSMPI_LIB32}')
-XMSMPI_LIB64=$(shell cygpath -s -m '${MSMPI_LIB64}')
+XMSMPI_INC=$(shell ${R_HOME}/bin/Rscript -e "cat(gsub('\\\\\\\\','/',shortPathName(Sys.getenv('MSMPI_INC'))))")
+XMSMPI_LIB32=$(shell ${R_HOME}/bin/Rscript -e "cat(gsub('\\\\\\\\','/',shortPathName(Sys.getenv('MSMPI_LIB32'))))")
+XMSMPI_LIB64=$(shell ${R_HOME}/bin/Rscript -e "cat(gsub('\\\\\\\\','/',shortPathName(Sys.getenv('MSMPI_LIB64'))))")
 ifeq "$(WIN)" "64"
 TARGET_ARCH=64
 MPILIBA=../libmsmpi64.a
@@ -30,10 +30,10 @@ all:	RhpcWorker$(TARGET_ARCH) RhpcWin$(TARGET_ARCH).cmd Rhpc$(TARGET_ARCH).cmd
 	@$(CP) -p Rhpc$(TARGET_ARCH).cmd $(R_PACKAGE_DIR)
 
 RhpcWin$(TARGET_ARCH).cmd:
-	sed -b -e 's/@@ARCH@@/$(TARGET_ARCH)/g' < RhpcWin.cmd.in > $@
+	$(SED) -b -e 's/@@ARCH@@/$(TARGET_ARCH)/g' < RhpcWin.cmd.in > $@
 
 Rhpc$(TARGET_ARCH).cmd:
-	sed -b -e 's/@@ARCH@@/$(TARGET_ARCH)/g' < Rhpc.cmd.in > $@
+	$(SED) -b -e 's/@@ARCH@@/$(TARGET_ARCH)/g' < Rhpc.cmd.in > $@
 
 RhpcWorker$(TARGET_ARCH): $(MPILIBA) $(OBJECTS)
 	$(CC) $(ALL_CPPFLAGS) $(ALL_CFLAGS) $(OBJECTS) -o $@ $(PKG_LIBS) $(LIBR)

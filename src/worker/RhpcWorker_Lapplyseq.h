@@ -1,6 +1,6 @@
 /*
     Rhpc : R HPC environment
-    Copyright (C) 2012-2013  Junji Nakano and Ei-ji Nakama
+    Copyright (C) 2012-2015  Junji NAKANO and Ei-ji Nakama
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by

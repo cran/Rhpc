@@ -1,5 +1,22 @@
 !!! This package require MPI Library. !!!
 
+<<build>>
+   OpenMPI or MPICH2
+       R CMD INSTALL Rhpc_0.yy-yday.tar.gz
+
+   other MPI *nix.
+       R CMD INSTALL Rhpc_0.yy-yday.tar.gz \
+          --configure-args='--with-mpi-cflags=-I/opt/FJSVplang/include64/mpi/fujitsu \
+                            --with-mpi-ldflags="-lmpi_f -lfjgmp64 -L/opt/FJSVpnple/lib -ljrm -L/opt/FJSVpnidt/lib -lfjidt -L/opt/FJSVplang/lib64 -lfj90i -lfj90f -lelf -lm -lpthread -lrt -ldl"'
+       
+   MS-MPI for Windows
+       require set MSMPI environment variable
+
+       c.f. Default install MS-MPI v6
+       C:\Users\boofoo>set MSMPI
+       MSMPI_INC=C:\Program Files (x86)\Microsoft SDKs\MPI\Include\
+       MSMPI_LIB32=C:\Program Files (x86)\Microsoft SDKs\MPI\Lib\x86\
+       MSMPI_LIB64=C:\Program Files (x86)\Microsoft SDKs\MPI\Lib\x64\
 
 <<program launch>>
 
