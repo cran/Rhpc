@@ -1,6 +1,6 @@
 Package: Rhpc
-Version: 0.15-146
-Date: 2015-05-26
+Version: 0.15-147
+Date: 2015-05-27
 Title: Permits *apply() Style Dispatch for 'HPC'
 Author: Junji NAKANO <nakanoj@ism.ac.jp> and Ei-ji Nakama<nakama@com-one.com>
 Maintainer: Ei-ji Nakama <nakama@com-one.com>
@@ -14,6 +14,6 @@ License: AGPL-3
 URL: http://prs.ism.ac.jp/~nakama/Rhpc/
 ByteCompile: true
 NeedsCompilation: yes
-Packaged: 2015-05-26 15:43:03 UTC; nakama
+Packaged: 2015-05-27 12:20:20 UTC; nakama
 Repository: CRAN
-Date/Publication: 2015-05-27 01:22:32
+Date/Publication: 2015-05-29 01:24:26
