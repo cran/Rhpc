@@ -25,4 +25,4 @@ RhpcSerialize.o: RhpcWorkerSerialize.c
 	$(CC) $(ALL_CPPFLAGS) $(ALL_CFLAGS) -c $< -o $@
 
 clean:
-	@$(RM) -f RhpcWorker $(OBJECTS)
+	@rm -f RhpcWorker $(OBJECTS)

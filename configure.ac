@@ -1,3 +1,4 @@
+AC_PREREQ(2.62)
 AC_INIT(Rhpc, 0.15, nakama@com-one.com)
 
 AC_CONFIG_HEADER(src/common/config.h)
@@ -39,6 +40,10 @@ else
 	AC_MSG_RESULT(yes)
 fi
 
+CC=`${R_HOME}/bin${R_ARCH}/R CMD config CC 2>/dev/null`
+CFLAGS=`${R_HOME}/bin${R_ARCH}/R CMD config CFLAGS 2>/dev/null`
+LDFLAGS=`${R_HOME}/bin${R_ARCH}/R CMD config LDFLAGS 2>/dev/null`
+
 AC_ARG_WITH(mpicc,
     AC_HELP_STRING([--with-mpicc=MPI_C_WRAPPER_COMPILER],
                    [MPI C wrapper compiler name or C compiler name.]),
@@ -72,19 +77,6 @@ if test -z "${MPICC}" ; then
    AC_CHECK_PROGS(MPICC, mpicc hcc mpxlc_r mpxlc mpcc cmpicc mpifcc)
 fi
 
-if test -z "${CC}" ; then
-	RCC=`${R_HOME}/bin${R_ARCH}/R CMD config CC 2>/dev/null`
-	argcnt=0
-	for arg in $RCC; do
-		if test $argcnt -eq 0 ; then
-			argcnt=1
-		else
-			CC="${CC} ${arg}"
-		fi
-	done
-	echo "configure: CC=$CC"
-fi
-
 if test ! -z "${MPICC}" && test -z "${MPI_CFLAGS}" ; then
    MPI_CFLAGS=`${MPICC} -showme:compile 2>/dev/null`
    MPI_LDFLAGS=`${MPICC} -showme:link 2>/dev/null`
@@ -107,6 +99,8 @@ fi
 
 CFLAGS="$CFLAGS $MPI_CFLAGS"
 LDFLAGS="$LDFLAGS $MPI_LDFLAGS"
+save_LIBS="$LIBS"    # Ubuntu 14.04 gcc-4.8  fake...
+LIBS="$MPI_LDFLAGS"  # Ubuntu 14.04 gcc-4.8  fake...
 AC_MSG_CHECKING([Compiling of MPI C programs])
 AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <mpi.h>]],
 [[  MPI_Init(0,(void *)0);
@@ -121,7 +115,8 @@ AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <mpi.h>]],
 					  
 AC_MSG_CHECKING([Linking of MPI C programs])
 AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <mpi.h>]],
-                 [[ MPI_Init(0, (void *)0); ]])],
+                 [[ MPI_Init(0, (void *)0);
+                    MPI_Finalize();]])],
                  [AC_DEFINE([HAVE_MPI], 1, [MPI support])
                   have_mpi=yes
                   have_mpi_header=yes],
@@ -132,6 +127,8 @@ if test "$have_mpi" = "no" ; then
 !!! This package requires MPI environment.
 !!! See config.log for details])
 fi
+
+LIBS="$saveLIBS" # Ubuntu 14.04 gcc-4.8  fake...
 
 
 if test -z "${MY_PACKAGE_DIR}" ; then

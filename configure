@@ -3380,6 +3380,10 @@ else
 $as_echo "yes" >&6; }
 fi
 
+CC=`${R_HOME}/bin${R_ARCH}/R CMD config CC 2>/dev/null`
+CFLAGS=`${R_HOME}/bin${R_ARCH}/R CMD config CFLAGS 2>/dev/null`
+LDFLAGS=`${R_HOME}/bin${R_ARCH}/R CMD config LDFLAGS 2>/dev/null`
+
 
 # Check whether --with-mpicc was given.
 if test "${with_mpicc+set}" = set; then :
@@ -3462,19 +3466,6 @@ done
 
 fi
 
-if test -z "${CC}" ; then
-	RCC=`${R_HOME}/bin${R_ARCH}/R CMD config CC 2>/dev/null`
-	argcnt=0
-	for arg in $RCC; do
-		if test $argcnt -eq 0 ; then
-			argcnt=1
-		else
-			CC="${CC} ${arg}"
-		fi
-	done
-	echo "configure: CC=$CC"
-fi
-
 if test ! -z "${MPICC}" && test -z "${MPI_CFLAGS}" ; then
    MPI_CFLAGS=`${MPICC} -showme:compile 2>/dev/null`
    MPI_LDFLAGS=`${MPICC} -showme:link 2>/dev/null`
@@ -3497,6 +3488,8 @@ fi
 
 CFLAGS="$CFLAGS $MPI_CFLAGS"
 LDFLAGS="$LDFLAGS $MPI_LDFLAGS"
+save_LIBS="$LIBS"    # Ubuntu 14.04 gcc-4.8  fake...
+LIBS="$MPI_LDFLAGS"  # Ubuntu 14.04 gcc-4.8  fake...
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking Compiling of MPI C programs" >&5
 $as_echo_n "checking Compiling of MPI C programs... " >&6; }
 cat confdefs.h - <<_ACEOF >conftest.$ac_ext
@@ -3534,6 +3527,7 @@ int
 main ()
 {
  MPI_Init(0, (void *)0);
+                    MPI_Finalize();
   ;
   return 0;
 }
@@ -3556,6 +3550,8 @@ if test "$have_mpi" = "no" ; then
 !!! This package requires MPI environment.
 !!! See config.log for details" "$LINENO" 5
 fi
+
+LIBS="$saveLIBS" # Ubuntu 14.04 gcc-4.8  fake...
 
 
 if test -z "${MY_PACKAGE_DIR}" ; then

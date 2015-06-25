@@ -56,7 +56,7 @@
      
      Installed in the package top directory, please look and use the Rhpc*.cmd shell.
 
-     ex. lunch Rgui(x64)
+     ex. launch Rgui(x64)
        Click %USERPROFILE%\Documents\R\win-binary\3.2\Rhpc\RhpcWin64.cmd
      follow input 
      > library(Rhpc)
@@ -66,6 +66,6 @@
      > Rhpc_finalize()
      > q("no")
      
-     ex. lunch batch(x64)
+     ex. launch batch(x64)
      C:> %USERPROFILE%\Documents\R\win-binary\3.2\Rhpc\Rhpc64.cmd BATCH test.R
 

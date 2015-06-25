@@ -1,3 +1,13 @@
+0.15-174	support add Solaris, FreeBSD
+
+0.15-173	support add other GUI for windows
+
+0.15-162	Removed `$(RM)' in Makefile.in
+
+0.15-154	tweak batch for Windows
+
+0.15-153	add trick AC_LINK_IFELSE on gcc-4.8.
+
 0.15-147	Removed of drive problem.
 
 0.15-146	repair Makevars.win and Makefine.win
