@@ -56,9 +56,6 @@ static int MPI_procs = 0;
 
 static MPI_Comm RHPC_Comm = MPI_COMM_NULL;
 
-static int SYNC = 0;
-static int SERMODE=0;
-
 
 SEXP Rhpc_mpi_initialize(void)
 {
@@ -250,48 +247,10 @@ SEXP Rhpc_mpi_finalize(void)
 
   SET_CMD(cmd, CMD_NAME_ENDL, SUBCMD_NORMAL, 0, 0);
   _M(MPI_Bcast(cmd, CMDLINESZ, MPI_INT, 0, RHPC_Comm));
-  _M(MPI_Finalize());
+  MPI_Finalize();
   finalize =1;
   Rhpc_set_options( -1, -1, MPI_COMM_NULL);
   return(R_NilValue);
-}
-
-SEXP Rhpc_mode(SEXP mode)
-{
-  SEXP res;
-  int cmd[CMDLINESZ];
-
-  PROTECT(res=allocVector(INTSXP,1));
-  if ( TYPEOF(mode) == INTSXP && xlength(mode)>=1 ){
-    SYNC=INTEGER(mode)[0];
-    if (SYNC != 0 && SYNC != 1) SYNC=0;
-    INTEGER(res)[0]=SYNC;
-    SET_CMD(cmd, CMD_NAME_MODE, SYNC, 0, 0);
-    _M(MPI_Bcast(cmd, CMDLINESZ, MPI_INT, 0, RHPC_Comm));
-  }else{
-    INTEGER(res)[0]=SYNC;
-  }
-  UNPROTECT(1);
-  return(res);
-}
-
-SEXP Rhpc_serialize_mode(SEXP mode)
-{
-  SEXP res;
-  int cmd[CMDLINESZ];
-
-  PROTECT(res=allocVector(INTSXP,1));
-  if ( TYPEOF(mode) == INTSXP && xlength(mode)>=1 ){
-    SERMODE=INTEGER(mode)[0];
-    if (SERMODE != 0 && SERMODE != 1) SERMODE=0;
-    INTEGER(res)[0]=SERMODE;
-    SET_CMD(cmd, CMD_NAME_SERIALIZE_MODE, SERMODE, 0, 0);
-    _M(MPI_Bcast(cmd, CMDLINESZ, MPI_INT, 0, RHPC_Comm));
-  }else{
-    INTEGER(res)[0]=SERMODE;
-  }
-  UNPROTECT(1);
-  return(res);
 }
 
 SEXP Rhpc_number_of_worker(SEXP cl)

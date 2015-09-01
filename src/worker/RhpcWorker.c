@@ -64,12 +64,10 @@ static int MPI_procs=-1;
 
 static MPI_Comm RHPC_Comm;
 
-static int SYNC=0;
-static int SERMODE=0;
 
 static void Rhcp_worker_finalize(void)
 {
-  _M(MPI_Finalize());
+  MPI_Finalize();
   Rf_endEmbeddedR(0);
   initialize=0;
 }
@@ -207,23 +205,19 @@ static void Rhpc_worker_main(void){
   PROTECT(cmdSexp = allocVector(STRSXP, 1));
   SET_STRING_ELT(cmdSexp, 0, mkChar("function (fun, args)do.call(\"fun\", args)"));
   PROTECT( cmdexpr = R_ParseVector(cmdSexp, -1, &status, R_NilValue));
-  UNPROTECT(2);
   PROTECT(Rhpc_docall=VECTOR_ELT(cmdexpr,0));
   do{
     SET_CMD(cmd, 0, 0, 0, 0);
     _M(MPI_Bcast(cmd, CMDLINESZ, MPI_INT, 0, RHPC_Comm));
     GET_CMD(cmd, &getcmd, &getsubcmd, &cnt, &mod);
 
-    if      (getcmd==CMD_NAME_ENDL)                return;
     if      (getcmd==CMD_NAME_WORKERCALL_NORET)    Rhpc_worker_call(cmd,0);
     else if (getcmd==CMD_NAME_WORKERCALL_RET)      Rhpc_worker_call(cmd,1);
     else if (getcmd==CMD_NAME_WORKERCALL_EXPORT)   Rhpc_worker_call(cmd,2);
     else if (getcmd==CMD_NAME_LAPPLY_LB)           Rhpc_worker_lapply_LB(cmd);
     else if (getcmd==CMD_NAME_LAPPLY_SEQ)          Rhpc_worker_lapply_seq(cmd);
-    else if (getcmd==CMD_NAME_MODE)                SYNC=getsubcmd;
-    else if (getcmd==CMD_NAME_SERIALIZE_MODE)      SERMODE=getsubcmd;
   }while(getcmd!=CMD_NAME_ENDL);
-  UNPROTECT(1);
+  UNPROTECT(3);
 
   pop_policy();
 }

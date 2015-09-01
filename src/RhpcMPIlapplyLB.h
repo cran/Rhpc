@@ -40,14 +40,9 @@ __inline static void Rhpc_mpi_lapply_LB_exit(int procs, MPI_Comm comm)
   SET_CMD(cmde, CMD_NAME_LAPPLY_LB , SUBCMD_EXIT, 0, 0 );
   for (i=1; i < procs ; i++){
     DPRINT("worker exit rank=%ld\n",i);
-    if(SYNC){
-      _M(MPI_Send(cmde,   (int)CMDLINESZ, MPI_INT, i, RHPC_CTRL_TAG, comm));
-    }else{
-      _M(MPI_Isend(cmde,  (int)CMDLINESZ, MPI_INT, i, RHPC_CTRL_TAG, comm, &request[i-1]));
-    }
+    _M(MPI_Isend(cmde,  (int)CMDLINESZ, MPI_INT, i, RHPC_CTRL_TAG, comm, &request[i-1]));
   }
-  if(!SYNC)
-    _M(MPI_Waitall(procs-1, request, status));
+  _M(MPI_Waitall(procs-1, request, status));
   Free(request);
   Free(status);
 }
@@ -58,7 +53,6 @@ static void Rhpc_mpi_lapply_LB_send(char *workers, int procs,
 				 MPI_Comm comm)
 {
   R_xlen_t i,j;
-  int errorOccurred=0;
   int cur_workers=0;
   R_xlen_t sendcalls=0;
   int cix;
@@ -94,14 +88,7 @@ static void Rhpc_mpi_lapply_LB_send(char *workers, int procs,
       SET_VECTOR_ELT(tag,0,ScalarReal((double)(cix+offset)));
       SET_VECTOR_ELT(tag,1,VECTOR_ELT(X,cix+offset));
       
-      if(SERMODE){
-	Xsel_l = LCONS(install("serialize"),CONS(tag,CONS(R_NilValue, CONS(ScalarLogical(FALSE), CONS(R_NilValue, CONS(R_NilValue, R_NilValue))))));
-	Xsel_l = LCONS(install(".Internal"), CONS(Xsel_l, R_NilValue));
-	REPROTECT(Xsel_l,ix1);
-	REPROTECT(Xsel= R_tryEval(Xsel_l, R_GlobalEnv, &errorOccurred), ix2);
-      }else{ /* SERMODE=0 */
-	REPROTECT(Xsel= Rhpc_serialize(tag), ix2);
-      }
+      REPROTECT(Xsel= Rhpc_serialize(tag), ix2);
       SET_VECTOR_ELT(sendlist,i-1, Xsel);
     }
   }
@@ -129,46 +116,28 @@ static void Rhpc_mpi_lapply_LB_send(char *workers, int procs,
 	R_xlen_t cnts = lens / RHPC_SPLIT_SIZE;
 	R_xlen_t mods = lens % RHPC_SPLIT_SIZE;
 	SET_CMD(cmds, CMD_NAME_LAPPLY_LB , SUBCMD_NORMAL, cnts, mods );
-	if(SYNC){
-	  _M(MPI_Send(cmds,   (int)CMDLINESZ, MPI_INT, i,
-		       RHPC_CTRL_TAG, comm));
-	}else{
-	  _M(MPI_Isend(cmds,   (int)CMDLINESZ, MPI_INT, i,
-		       RHPC_CTRL_TAG, comm, &request[sendcalls]));
-	}
+	_M(MPI_Isend(cmds,   (int)CMDLINESZ, MPI_INT, i,
+		     RHPC_CTRL_TAG, comm, &request[sendcalls]));
 	sendcalls++;
 	/*
 	  mydump((void*)cmds,CMDLINESZ*sizeof(int));
 	*/
 	for( j = 0 ; j< cnts ; j++){
-	  if(SYNC){
-	    _M(MPI_Send(RAW(VECTOR_ELT(sendlist,i-1))+RHPC_SPLIT_SIZE*j,
-			 (int)RHPC_SPLIT_SIZE, MPI_CHAR,
-			 (int)i, TAGCAL(j),    comm));
-	  }else{
-	    _M(MPI_Isend(RAW(VECTOR_ELT(sendlist,i-1))+RHPC_SPLIT_SIZE*j,
-			 (int)RHPC_SPLIT_SIZE, MPI_CHAR,
-			 (int)i, TAGCAL(j),    comm, &request[sendcalls]));
-	  }
+	  _M(MPI_Isend(RAW(VECTOR_ELT(sendlist,i-1))+RHPC_SPLIT_SIZE*j,
+		       (int)RHPC_SPLIT_SIZE, MPI_CHAR,
+		       (int)i, TAGCAL(j),    comm, &request[sendcalls]));
 	  sendcalls++;
 	}
 	if ( mods != 0 ){
-	  if(SYNC){
-	    _M(MPI_Send(RAW(VECTOR_ELT(sendlist,i-1))+RHPC_SPLIT_SIZE*cnts,
-			(int)mods,            MPI_CHAR,
-			(int)i, TAGCAL(cnts), comm));
-	  }else{
-	    _M(MPI_Isend(RAW(VECTOR_ELT(sendlist,i-1))+RHPC_SPLIT_SIZE*cnts,
-			 (int)mods,            MPI_CHAR,
-			 (int)i, TAGCAL(cnts), comm, &request[sendcalls]));
-	  }
+	  _M(MPI_Isend(RAW(VECTOR_ELT(sendlist,i-1))+RHPC_SPLIT_SIZE*cnts,
+		       (int)mods,            MPI_CHAR,
+		       (int)i, TAGCAL(cnts), comm, &request[sendcalls]));
 	  sendcalls++;
 	}
 	workers[i]=2;
       }
     }
-    if(!SYNC)
-      _M(MPI_Waitall(sendcalls, request, status));
+    _M(MPI_Waitall(sendcalls, request, status));
     Free(request);
     Free(status);
   }
@@ -182,7 +151,6 @@ static void Rhpc_mpi_lapply_LB_send(char *workers, int procs,
 SEXP Rhpc_mpi_lapply_LB(SEXP cl, SEXP X, SEXP args)
 {
   R_xlen_t i;
-  int errorOccurred=0;
 
   MPI_Comm comm;
   int procs;
@@ -200,6 +168,7 @@ SEXP Rhpc_mpi_lapply_LB(SEXP cl, SEXP X, SEXP args)
   SEXP          outlist_l;
   SEXP          outlist;
   SEXP          ans;
+  SEXP          names = getAttrib(X, R_NamesSymbol);
   PROTECT_INDEX outlist_l_ix;
   PROTECT_INDEX outlist_ix;
   PROTECT_INDEX ans_ix;
@@ -230,14 +199,9 @@ SEXP Rhpc_mpi_lapply_LB(SEXP cl, SEXP X, SEXP args)
 
   /* -------- common start */
   /* serialize */
-  if(SERMODE){
-    l_out=LCONS(install("serialize"),CONS(args,CONS(R_NilValue, CONS(ScalarLogical(FALSE), CONS(R_NilValue, CONS(R_NilValue, R_NilValue))))));
-    PROTECT(l_out=LCONS(install(".Internal"), CONS(l_out, R_NilValue)));
-    PROTECT(out=R_tryEval(l_out, R_GlobalEnv, &errorOccurred));
-  }else{ /* SERMODE=0 */
-    PROTECT(l_out);
-    PROTECT(out=Rhpc_serialize(args));
-  }
+  PROTECT(names);
+  PROTECT(l_out);
+  PROTECT(out=Rhpc_serialize(args));
 
   /* cmd send */
   szi = xlength(out);
@@ -268,7 +232,8 @@ SEXP Rhpc_mpi_lapply_LB(SEXP cl, SEXP X, SEXP args)
   PROTECT_WITH_INDEX(indata   =R_NilValue,               &indata_ix);
   PROTECT_WITH_INDEX(uns_l    =R_NilValue,               &uns_l_ix);
   PROTECT_WITH_INDEX(uns      =R_NilValue,               &uns_ix);
-  
+
+  if(!isNull(names)) setAttrib(outlist, R_NamesSymbol, names);
 
   workers= Calloc(procs,char);
   memset((void*)workers,0,(procs));
@@ -302,45 +267,23 @@ SEXP Rhpc_mpi_lapply_LB(SEXP cl, SEXP X, SEXP args)
 	  MPI_Request *request = Calloc(msgcnt, MPI_Request);
 	  MPI_Status  *status  = Calloc(msgcnt, MPI_Status);
 	  for(i=0;i<cntr;i++){
-	    if(SYNC){
-	      _M(MPI_Recv(RAW(indata)+RHPC_SPLIT_SIZE*i, 
-			   (int)RHPC_SPLIT_SIZE, MPI_CHAR,
-			   wkr, TAGCAL(i),    comm, &status[calls]));
-	    }else{
-	      _M(MPI_Irecv(RAW(indata)+RHPC_SPLIT_SIZE*i, 
-			   (int)RHPC_SPLIT_SIZE, MPI_CHAR,
-			   wkr, TAGCAL(i),    comm, &request[calls]));
-	    }
+	    _M(MPI_Irecv(RAW(indata)+RHPC_SPLIT_SIZE*i, 
+			 (int)RHPC_SPLIT_SIZE, MPI_CHAR,
+			 wkr, TAGCAL(i),    comm, &request[calls]));
 	    calls++;
 	  }
 	  if ( modr != 0 ){
-	    if(SYNC){
-	      _M(MPI_Recv(RAW(indata)+RHPC_SPLIT_SIZE*cntr,
-			   (int)modr,            MPI_CHAR,
-			   wkr, TAGCAL(cntr), comm, &status[calls]));
-	    }else{
-	      _M(MPI_Irecv(RAW(indata)+RHPC_SPLIT_SIZE*cntr,
-			   (int)modr,            MPI_CHAR,
-			   wkr, TAGCAL(cntr), comm, &request[calls]));
-	    }
+	    _M(MPI_Irecv(RAW(indata)+RHPC_SPLIT_SIZE*cntr,
+			 (int)modr,            MPI_CHAR,
+			 wkr, TAGCAL(cntr), comm, &request[calls]));
 	    calls++;
 	  }
-	  if(!SYNC){
-	    _M(MPI_Waitall(calls, request, status));
-	  }
+	  _M(MPI_Waitall(calls, request, status));
 	  Free(status);
 	  Free(request);
 	}
 	
-	if(SERMODE){
-	  uns_l=LCONS(install("unserialize"),CONS(indata, CONS(R_NilValue,R_NilValue)));
-	  uns_l=LCONS(install(".Internal"),  CONS(uns_l,                  R_NilValue));
- 
-	  REPROTECT(uns_l, uns_l_ix);
-	  REPROTECT(uns  = R_tryEval(uns_l, R_GlobalEnv, &errorOccurred),uns_ix);
-	}else{/* SERMODE=0 */
-	  REPROTECT(uns  = Rhpc_unserialize(indata), uns_ix);
-	}
+	REPROTECT(uns  = Rhpc_unserialize(indata), uns_ix);
 	index = (R_xlen_t)REAL(VECTOR_ELT(uns,0))[0];
 	REPROTECT(ans = VECTOR_ELT(uns,1),ans_ix);
 	SET_VECTOR_ELT(outlist, index, ans );
@@ -350,7 +293,7 @@ SEXP Rhpc_mpi_lapply_LB(SEXP cl, SEXP X, SEXP args)
     }
   }
   Rhpc_mpi_lapply_LB_exit(procs, comm);
-  UNPROTECT(8);
+  UNPROTECT(9);
   Free(workers);
 
   pop_policy();

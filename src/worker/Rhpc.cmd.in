@@ -1,10 +1,16 @@
 @echo off
 set ARCH=@@ARCH@@
 rem ##### if you wanna fixed
-rem set NPROCS =                                     rem # default phisical cores
-rem set R_HOME = "C:\Program Files\R\R-3.2.0patched" rem # default from registory
-rem set R_VER = 3.2.0                                rem # default from registory
-rem remember R_VER if you set to R_HOME
+rem ##### default is phisical cores
+rem set NPROCS=
+rem ##### OpenMP
+set OMP_NUM_THREADS=1
+rem ##### default from registory
+rem set R_HOME="C:\Program Files\R\R-3.2.0patched"
+rem ##### default from registory
+rem set R_VER=3.2.0
+rem ##### remember R_VER if you set to R_HOME
+
 
 
 rem ================== calc NPROCS

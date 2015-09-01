@@ -40,6 +40,12 @@ static void Rhpc_worker_lapply_seq(int *cmd)
   R_xlen_t XLlen;
   R_xlen_t works;
 
+  /* serialize */
+  SEXP l_out,out;
+
+  /* result list */
+  SEXP resL;
+  PROTECT_INDEX resL_ix;
 
   GET_CMD(cmd, &getcmd, &getsubcmd, &cnti, &modi);
 
@@ -59,15 +65,8 @@ static void Rhpc_worker_lapply_seq(int *cmd)
 
   /* unserialize */
   l_fun_arg=R_NilValue;
-  if(SERMODE){
-    l_fun_arg=LCONS(install("unserialize"),CONS(data,   CONS(R_NilValue,R_NilValue)));
-    l_fun_arg=LCONS(install(".Internal"),  CONS(l_fun_arg,   R_NilValue));
-    PROTECT(l_fun_arg);
-    PROTECT(fun_arg=R_tryEval(l_fun_arg, R_GlobalEnv, &errorOccurred));
-  }else{/* SERMODE=0 */
-    PROTECT(l_fun_arg);
-    PROTECT(fun_arg=Rhpc_unserialize(data));
-  }
+  PROTECT(l_fun_arg);
+  PROTECT(fun_arg=Rhpc_unserialize(data));
 
   /* find function */
   fun = VECTOR_ELT(fun_arg,0);
@@ -123,53 +122,32 @@ static void Rhpc_worker_lapply_seq(int *cmd)
     DPRINT("success datax(%ld)\n",xlength(datax));
       
     for(i=0;i<cntx;i++){
-      if(SYNC){
-	_M(MPI_Recv(RAW(datax)+RHPC_SPLIT_SIZE*i, 
-		    (int)RHPC_SPLIT_SIZE, MPI_CHAR,
-		    0, TAGCAL(i),
-		    RHPC_Comm, &statusx[calls]));
-      }else{
-	_M(MPI_Irecv(RAW(datax)+RHPC_SPLIT_SIZE*i, 
-		     (int)RHPC_SPLIT_SIZE, MPI_CHAR,
-		     0, TAGCAL(i),
-		     RHPC_Comm, &requestx[calls]));
-      }
+      _M(MPI_Irecv(RAW(datax)+RHPC_SPLIT_SIZE*i, 
+		   (int)RHPC_SPLIT_SIZE, MPI_CHAR,
+		   0, TAGCAL(i),
+		   RHPC_Comm, &requestx[calls]));
       calls++;
     }
     if ( modx != 0 ){
-      if(SYNC){
-	_M(MPI_Recv(RAW(datax)+RHPC_SPLIT_SIZE*cntx,
-		    (int)modx,            MPI_CHAR,
-		    0, TAGCAL(cntx),
-		    RHPC_Comm, &statusx[calls]));
-      }else{
-	_M(MPI_Irecv(RAW(datax)+RHPC_SPLIT_SIZE*cntx,
-		     (int)modx,            MPI_CHAR,
-		     0, TAGCAL(cntx),
-		     RHPC_Comm, &requestx[calls]));
-      }
+      _M(MPI_Irecv(RAW(datax)+RHPC_SPLIT_SIZE*cntx,
+		   (int)modx,            MPI_CHAR,
+		   0, TAGCAL(cntx),
+		   RHPC_Comm, &requestx[calls]));
       calls++;
       DPRINT("RECV end\n");
     }
-    if(!SYNC){
-      _M(MPI_Waitall(calls, requestx, statusx));
-    }
+    _M(MPI_Waitall(calls, requestx, statusx));
     Free(requestx);
     Free(statusx);
     DPRINT("success recv x\n");
 
-    if(SERMODE){
-      XL_l=LCONS(install("unserialize"),CONS(datax, CONS(R_NilValue,R_NilValue)));
-      XL_l=LCONS(install(".Internal"),  CONS(XL_l,   R_NilValue));
-      PROTECT(XL_l);
-      PROTECT(XL  = R_tryEval(XL_l, R_GlobalEnv, &errorOccurred));
-    }else{/* SERMODE */
-      PROTECT(XL_l=R_NilValue);
-      PROTECT(XL  =Rhpc_unserialize(datax));
-    }
+    PROTECT(XL_l=R_NilValue);
+    PROTECT(XL  =Rhpc_unserialize(datax));
   }
 
   XLlen = xlength(XL);
+  PROTECT(resL = allocVector(VECSXP,XLlen));
+  PROTECT_WITH_INDEX(resL,&resL_ix);
   for(works=0; works<XLlen; works ++){
     SEXP X;
     /* make args */
@@ -179,8 +157,11 @@ static void Rhpc_worker_lapply_seq(int *cmd)
     R_xlen_t argw_len;
     /* eval */
     SEXP lng,ret;
+    
     /* serialize */
-    SEXP l_out,out;
+    /*
+      SEXP l_out,out;
+    */
 
     PROTECT(X   = VECTOR_ELT(XL,works));
 
@@ -225,84 +206,66 @@ static void Rhpc_worker_lapply_seq(int *cmd)
       setAttrib(elist, R_ClassSymbol, eclass);
       ret=elist;
     }
+    /*
     PROTECT(ret);
     DPRINT("success eval x\n");
+    */
 
-    /* serialize */
-    if(SERMODE){
-      l_out = LCONS(install("serialize"),CONS(ret,CONS(R_NilValue, CONS(ScalarLogical(FALSE), CONS(R_NilValue, CONS(R_NilValue, R_NilValue))))));
-      l_out = LCONS(install(".Internal"), CONS(l_out, R_NilValue));
-      PROTECT(l_out);
-      PROTECT(out=R_tryEval(l_out, R_GlobalEnv, &errorOccurred));
-    }else{/* SERMODE */
-      PROTECT(l_out=R_NilValue);
-      PROTECT(out=Rhpc_serialize(ret));
-    }
-    DPRINT("success  serialize outlength=%ld\n",xlength(out));
-
-
-    /* send */
-    {
-      int cmdo[CMDLINESZ];
-
-      R_xlen_t sz =  xlength(out);
-      R_xlen_t cnto = (int)(sz / RHPC_SPLIT_SIZE);
-      R_xlen_t modo = (int)(sz % RHPC_SPLIT_SIZE);
-      int reqcnt = cnto+((modo)?1:0);
-
-      MPI_Request *request = Calloc(reqcnt+1, MPI_Request);
-      MPI_Status  *status  = Calloc(reqcnt+1, MPI_Status);
-      int calls;
-
-      SET_CMD(cmdo, CMD_NAME_LAPPLY_SEQ, SUBCMD_NORMAL, cnto, modo );
-
-      calls=0;
-      if(SYNC){
-	_M(MPI_Send(cmdo,   (int)CMDLINESZ,
-		    MPI_INT, 0, RHPC_CTRL_TAG,
-		    RHPC_Comm));
-      }else{
-	_M(MPI_Isend(cmdo,   (int)CMDLINESZ,
-		     MPI_INT, 0, RHPC_CTRL_TAG,
-		     RHPC_Comm, &request[calls]));
-      }
-      DPRINT("send ctrl\n");
-      calls++;
-      for( i = 0 ; i< cnto ; i++){
-	if(SYNC){
-	  _M(MPI_Send(RAW(out)+RHPC_SPLIT_SIZE*i,   (int)RHPC_SPLIT_SIZE,
-		       MPI_CHAR, 0, TAGCAL(i),
-		       RHPC_Comm));
-	}else{
-	  _M(MPI_Isend(RAW(out)+RHPC_SPLIT_SIZE*i,   (int)RHPC_SPLIT_SIZE,
-		       MPI_CHAR, 0, TAGCAL(i),
-		       RHPC_Comm, &request[calls]));
-	}
-	calls++;
-      }
-      if ( modo != 0 ){
-	if(SYNC){
-	  _M(MPI_Send(RAW(out)+RHPC_SPLIT_SIZE*cnto, (int)modo,
-		       MPI_CHAR, 0, TAGCAL(cnto),
-		       RHPC_Comm));
-	}else{
-	  _M(MPI_Isend(RAW(out)+RHPC_SPLIT_SIZE*cnto, (int)modo,
-		       MPI_CHAR, 0, TAGCAL(cnto),
-		       RHPC_Comm, &request[calls]));
-	}
-	calls++;
-      }
-      DPRINT("send data wait start\n");
-      if(!SYNC){
-	_M(MPI_Waitall(calls, request, status));
-      }
-      Free(request);
-      Free(status);
-      DPRINT("send data wait end\n");
-    }
-    UNPROTECT(8);
+    /* PROTECT(ret); */
+    SET_VECTOR_ELT(resL,works,ret);
+    REPROTECT(resL,resL_ix);
+    UNPROTECT(5);
   }
-  UNPROTECT(9);
+ 
+  DPRINT("success eval x\n");
+    
+  /* serialize */
+  {
+    PROTECT(l_out=R_NilValue);
+    PROTECT(out=Rhpc_serialize(resL));
+    DPRINT("success  serialize outlength=%ld\n",xlength(out));
+  }
+
+  /* send */
+  {
+    int cmdo[CMDLINESZ];
+
+    R_xlen_t sz =  xlength(out);
+    R_xlen_t cnto = (int)(sz / RHPC_SPLIT_SIZE);
+    R_xlen_t modo = (int)(sz % RHPC_SPLIT_SIZE);
+    int reqcnt = cnto+((modo)?1:0);
+
+    MPI_Request *request = Calloc(reqcnt+1, MPI_Request);
+    MPI_Status  *status  = Calloc(reqcnt+1, MPI_Status);
+    int calls;
+
+    SET_CMD(cmdo, CMD_NAME_LAPPLY_SEQ, SUBCMD_NORMAL, cnto, modo );
+
+    calls=0;
+    _M(MPI_Isend(cmdo,   (int)CMDLINESZ,
+		 MPI_INT, 0, RHPC_CTRL_TAG,
+		 RHPC_Comm, &request[calls]));
+    DPRINT("send ctrl\n");
+    calls++;
+    for( i = 0 ; i< cnto ; i++){
+      _M(MPI_Isend(RAW(out)+RHPC_SPLIT_SIZE*i,   (int)RHPC_SPLIT_SIZE,
+		   MPI_CHAR, 0, TAGCAL(i),
+		   RHPC_Comm, &request[calls]));
+      calls++;
+    }
+    if ( modo != 0 ){
+      _M(MPI_Isend(RAW(out)+RHPC_SPLIT_SIZE*cnto, (int)modo,
+		   MPI_CHAR, 0, TAGCAL(cnto),
+		   RHPC_Comm, &request[calls]));
+      calls++;
+    }
+    DPRINT("send data wait start\n");
+    _M(MPI_Waitall(calls, request, status));
+    Free(request);
+    Free(status);
+    DPRINT("send data wait end\n");
+  }
+  UNPROTECT(11);
 
   /* recv exit */
   {

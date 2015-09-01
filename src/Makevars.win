@@ -36,7 +36,7 @@ $(SHLIB): $(OBJECTS)
 msmpi64.def:
 	echo 'LIBRARY "msmpi.dll"' > msmpi64.def
 	echo 'EXPORTS'            >> msmpi64.def
-	($(NM) $(XMSMPI_LIB64)/msmpi.lib 2>NUL |$(SED) -n -e '/ T /p'|$(SED) -e '/ T .text/d' | $(SED) -e 's/^\([0-9]*\) T \(.*\)$$/\2/g' | $(SED) -e 's/@.*$$//; s/^_//; s/^\?//' ) >> msmpi64.def
+	($(NM) $(XMSMPI_LIB64)/msmpi.lib 2>/dev/null |$(SED) -n -e '/ T /p'|$(SED) -e '/ T .text/d' | $(SED) -e 's/^\([0-9]*\) T \(.*\)$$/\2/g' | $(SED) -e 's/@.*$$//; s/^_//; s/^\?//' ) >> msmpi64.def
 
 libmsmpi64.a: msmpi64.def
 	 $(DLLTOOL) -d msmpi64.def -k -l libmsmpi64.a -D msmpi.dll $(DT_ARCH)

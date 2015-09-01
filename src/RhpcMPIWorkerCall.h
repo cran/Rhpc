@@ -21,7 +21,6 @@ SEXP Rhpc_mpi_worker_call(SEXP cl, SEXP args, SEXP actioncode)
   int action=INTEGER(actioncode)[0];
 
   R_xlen_t i,j;
-  int errorOccurred=0;
 
   MPI_Comm comm;
   int procs;
@@ -72,15 +71,8 @@ SEXP Rhpc_mpi_worker_call(SEXP cl, SEXP args, SEXP actioncode)
 
   /* serialize */
   GETTIME(ts);
-  if(SERMODE){
-    l_out=LCONS(install("serialize"),CONS(args,CONS(R_NilValue, CONS(ScalarLogical(FALSE), CONS(R_NilValue, CONS(R_NilValue, R_NilValue))))));
-    /*  STR(l_out); */
-    PROTECT(l_out=LCONS(install(".Internal"), CONS(l_out, R_NilValue)));
-    PROTECT(out=R_tryEval(l_out, R_GlobalEnv, &errorOccurred));
-  }else{ /* SERMODE=0 */
-    PROTECT(l_out);
-    PROTECT(out=Rhpc_serialize(args));
-  }
+  PROTECT(l_out);
+  PROTECT(out=Rhpc_serialize(args));
   GETTIME(te);
   TMPRINT("serialize:%f\n");
 
@@ -166,37 +158,22 @@ SEXP Rhpc_mpi_worker_call(SEXP cl, SEXP args, SEXP actioncode)
   GETTIME(ts);
   for(calls=0,i=1; i<procs; i++){
     for(j=0;j<cnts[i];j++){
-      if(SYNC){
-	_M(MPI_Recv(RAW(VECTOR_ELT(inlist,i-1))+RHPC_SPLIT_SIZE*j,
-		     (int)RHPC_SPLIT_SIZE,
-		     MPI_CHAR, i, TAGCAL(j),
-		     comm, &status[calls]));
-      }else{
-	_M(MPI_Irecv(RAW(VECTOR_ELT(inlist,i-1))+RHPC_SPLIT_SIZE*j,
-		     (int)RHPC_SPLIT_SIZE,
-		     MPI_CHAR, i, TAGCAL(j),
-		     comm, &request[calls]));
-      }
+      _M(MPI_Irecv(RAW(VECTOR_ELT(inlist,i-1))+RHPC_SPLIT_SIZE*j,
+		   (int)RHPC_SPLIT_SIZE,
+		   MPI_CHAR, i, TAGCAL(j),
+		   comm, &request[calls]));
       calls++;
     }
     if ( mods[i] != 0 ){
-      if(SYNC){
-	_M(MPI_Recv(RAW(VECTOR_ELT(inlist,i-1))+RHPC_SPLIT_SIZE*cnts[i],
-		    (int)mods[i],
-		    MPI_CHAR, i, TAGCAL(cnts[i]),
-		    comm, &status[calls]));
-      }else{
-	_M(MPI_Irecv(RAW(VECTOR_ELT(inlist,i-1))+RHPC_SPLIT_SIZE*cnts[i],
-		     (int)mods[i],
-		     MPI_CHAR, i, TAGCAL(cnts[i]),
-		     comm, &request[calls]));
-      }
+      _M(MPI_Irecv(RAW(VECTOR_ELT(inlist,i-1))+RHPC_SPLIT_SIZE*cnts[i],
+		   (int)mods[i],
+		   MPI_CHAR, i, TAGCAL(cnts[i]),
+		   comm, &request[calls]));
       calls++;
     }
   }
-  if(!SYNC){
-    _M(MPI_Waitall(calls, request, status));
-  }
+  _M(MPI_Waitall(calls, request, status));
+
   Free(request);
   Free(status);
   GETTIME(te);
@@ -212,14 +189,7 @@ SEXP Rhpc_mpi_worker_call(SEXP cl, SEXP args, SEXP actioncode)
     PROTECT_WITH_INDEX(l_un=R_NilValue,&ix1);
     PROTECT_WITH_INDEX(  un=R_NilValue,&ix2);
     for(i=1; i<procs; i++){
-      if(SERMODE){
-	l_un=LCONS(install("unserialize"),CONS(VECTOR_ELT(inlist,i-1), CONS(R_NilValue,R_NilValue)));
-	l_un=LCONS(install(".Internal"),        CONS(l_un,                   R_NilValue));
-	REPROTECT(l_un,ix1);
-	REPROTECT(un = R_tryEval(l_un, R_GlobalEnv, &errorOccurred), ix2);
-      }else{/* SERMODE=0 */
-	REPROTECT(un = Rhpc_unserialize(VECTOR_ELT(inlist,i-1)), ix2);
-      }
+      REPROTECT(un = Rhpc_unserialize(VECTOR_ELT(inlist,i-1)), ix2);
       SET_VECTOR_ELT(outlist, i-1, un);
     }
     GETTIME(te);

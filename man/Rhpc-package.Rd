@@ -8,12 +8,13 @@
 \alias{Rhpc_worker_noback}
 \alias{Rhpc_lapply}
 \alias{Rhpc_lapplyLB}
+\alias{Rhpc_sapply}
+\alias{Rhpc_sapplyLB}
+\alias{Rhpc_apply}
 \alias{Rhpc_numberOfWorker}
 \alias{Rhpc_Export}
 \alias{Rhpc_EvalQ}
 \alias{Rhpc_setupRNG}
-\alias{Rhpc_mode}
-\alias{Rhpc_serialize_mode}
 \alias{Rhpc_enquote}
 \alias{Rhpc_splitList}
 \alias{Rhpc_serialize}
@@ -27,6 +28,9 @@ Rhpc_worker_call(cl, FUN, ...)
 Rhpc_worker_noback(cl, FUN, ...)
 Rhpc_lapply(cl, X, FUN, ...)
 Rhpc_lapplyLB(cl, X, FUN, ...)
+Rhpc_sapply(cl, X, FUN, ..., simplify, USE.NAMES)
+Rhpc_sapplyLB(cl, X, FUN, ..., simplify, USE.NAMES)
+Rhpc_apply(cl, X, MARGIN, FUN, ...)
 Rhpc_numberOfWorker(cl)
 Rhpc_Export(cl, variableNames, pos, envir)
 Rhpc_EvalQ(cl, expr, envir)
@@ -44,6 +48,26 @@ Rhpc_setupRNG(cl, iseed)
     Function name or string (string expresses function name)
     Distributed by collective communication at first, then they are not
     sent again
+  }
+  \item{MARGIN}{a vector giving the subscripts which the function will
+    be applied over.  E.g., for a matrix \code{1} indicates rows,
+    \code{2} indicates columns, \code{c(1, 2)} indicates rows and
+    columns. Where \code{X} has named dimnames, it can be a character
+    vector selecting dimension names.
+  }
+  \item{simplify}{logical or character string; should the result be
+    simplified to a vector, matrix or higher dimensional array if
+    possible?  For \code{sapply} it must be named and not abbreviated.
+    The default value, \code{TRUE}, returns a vector or matrix if appropriate,
+    whereas if \code{simplify = "array"} the result may be an
+    \code{\link{array}} of \dQuote{rank}
+    (\eqn{=}\code{length(dim(.))}) one higher than the result
+    of \code{FUN(X[[i]])}.
+  }
+  \item{USE.NAMES}{logical; if \code{TRUE} and if \code{X} is character,
+    use \code{X} as \code{\link{names}} for the result unless it had names
+    already.  Since this argument follows \code{\dots} its name cannot
+    be abbreviated.
   }
   \item{...}{arguments.
     Distributed by collective communication at first, then they are not
@@ -94,6 +118,13 @@ Rhpc_worker_call(cl, "do.call","options", opstr)
 Rhpc_worker_call(cl, Sys.getpid)
 Rhpc_lapply(cl,1:10000,sqrt)
 Rhpc_lapplyLB(cl,1:10000,sqrt)
+Rhpc_sapply(cl,1:10000,sqrt)
+Rhpc_sapplyLB(cl,1:10000,sqrt)
+
+df<-data.frame(a=1:4,b=5:8)
+Rhpc_apply(cl,df,1,max)
+Rhpc_apply(cl,df,2,max)
+
 Rhpc_finalize()
 #
 # command line example

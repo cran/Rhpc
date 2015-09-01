@@ -1,6 +1,17 @@
-0.15-174	support add Solaris, FreeBSD
+0.15-244	change NUL device to /dev/null in Makevers.win.
 
-0.15-173	support add other GUI for windows
+0.15-243	add keep names attribute.
+		omit serialize mode and MPI sync mode.
+
+0.15-238	increased the split size in openib number of segments issues.
+		add function Rhpc_sapply,Rhpc_sapplyLB and Rhpc_apply.
+
+0.15-212	Fixed broken protected bug.
+
+0.15-177	diet communication for Rhpc_lapply
+
+0.15-176	support add on Solaris, FreeBSD
+		support add other GUI for windows
 
 0.15-162	Removed `$(RM)' in Makefile.in
 
