@@ -56,8 +56,10 @@ static void Rhpc_worker_call(int *cmd, int action)
    }
 
   /* unserialize */
+  fun_arg=Rhpc_unserialize(data);
+  UNPROTECT(1);
+  PROTECT(fun_arg);
   PROTECT(l_fun_arg=R_NilValue);
-  PROTECT(fun_arg=Rhpc_unserialize(data));
 
   if(action == 2){ /* Export */   
     PROTECT(fun = findVar(install("assign"),R_BaseEnv));
@@ -92,10 +94,14 @@ static void Rhpc_worker_call(int *cmd, int action)
   errorOccurred=0;
   
   PROTECT(lng = LCONS(Rhpc_docall, CONS(fun,CONS(argq, R_NilValue))));
+  /*
+    PROTECT(lng = LCONS(install("do.call"), CONS(fun, CONS(arg, CONS(ScalarLogical(1), R_NilValue)))));
+    SET_TAG(CDDDR(lng), install("quote"));
+  */
   ret=R_tryEval(lng, R_GlobalEnv, &errorOccurred);
-
+    
   if(action == 0){
-    UNPROTECT(8);
+    UNPROTECT(7);
     return;
   }
   
@@ -159,7 +165,7 @@ static void Rhpc_worker_call(int *cmd, int action)
     Free(request);
     Free(status);
   }
-  UNPROTECT(11);
+  UNPROTECT(10);
 
   return;
 }

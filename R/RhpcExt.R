@@ -99,7 +99,8 @@ Rhpc_sapply<-function (cl = NULL, X, FUN, ..., simplify = TRUE, USE.NAMES = TRUE
         names(answer) <- X
     if (!identical(simplify, FALSE) && length(answer)) 
         simplify2array(answer, higher = (simplify == "array"))
-    else answer
+    else
+        answer   
 }
 
 Rhpc_sapplyLB<-function (cl = NULL, X, FUN, ..., simplify = TRUE, USE.NAMES = TRUE) 
@@ -112,5 +113,6 @@ Rhpc_sapplyLB<-function (cl = NULL, X, FUN, ..., simplify = TRUE, USE.NAMES = TR
         names(answer) <- X
     if (!identical(simplify, FALSE) && length(answer)) 
         simplify2array(answer, higher = (simplify == "array"))
-    else answer
+    else
+        answer
 }

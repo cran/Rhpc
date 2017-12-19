@@ -21,7 +21,7 @@ endif
 endif
 
 SUBDIRS = worker
-SOURCES_C = RhpcMPI.c RhpcSerialize.c
+SOURCES_C = RhpcMPI.c RhpcSerialize.c registerDynamicSymbol.c
 OBJECTS = $(SOURCES_C:.c=.o)
 MKCONF = $(R_HOME)/etc$(R_ARCH)/Makeconf
 
@@ -46,7 +46,10 @@ clean: subdirsclean
 
 subdirs: subdirsclean
 	@for d in $(SUBDIRS); do \
-		(cd $${d} && $(MAKE) -f Makefile.win MKCONF=$(MKCONF) )|| exit 1;\
+		(cd $${d} && echo $(MAKE) -f Makefile.win -f $(MKCONF) )|| exit 1;\
+	done
+	@for d in $(SUBDIRS); do \
+		(cd $${d} && $(MAKE) -f Makefile.win -f $(MKCONF) )|| exit 1;\
 	done
 
 subdirsclean:

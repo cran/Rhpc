@@ -152,7 +152,7 @@ static int MPI_argc = 1;
 #ifndef MYSCHED
 int MYSCHED;
 #endif
-__inline void push_policy(void)
+__inline static void push_policy(void)
 {
 #if (defined(_POSIX_PRIORITY_SCHEDULING) && defined(HAVE_SCHED_GETSCHEDULER))
   struct sched_param sp;
@@ -168,7 +168,7 @@ __inline void push_policy(void)
   MYSCHED = 1;
 #endif /* _POSIX_PRIORITY_SCHEDULING */
 }
-__inline void pop_policy(void)
+__inline static void pop_policy(void)
 {
 #if (defined(_POSIX_PRIORITY_SCHEDULING) && defined(HAVE_SCHED_GETSCHEDULER))
   struct sched_param sp;
@@ -246,8 +246,11 @@ __inline static void Rhpc_set_options(int rank, int procs, MPI_Comm ccomm)
 }
 
 
+#define MYDEBUG 0
 
-#ifdef DEBUG
+
+#if defined(MYDEBUG) & (MYDEBUG == 1) 
+#include <stdio.h>
 static void mydump(unsigned char* p, size_t sz)
 {
   size_t i,j;
@@ -263,7 +266,7 @@ static void mydump(unsigned char* p, size_t sz)
     sprintf(buf+strlen(buf),"\n");
     if(strcmp(buf,obuf)!=0){
       printf ("%d:%05lx: ", getpid(), i);
-      printf (buf);
+      printf ("%s",buf);
       strcpy(obuf,buf);
     }
   }

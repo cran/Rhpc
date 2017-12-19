@@ -28,6 +28,7 @@ SEXP Rhpc_splitList(SEXP orgList, SEXP splitNum)
   R_xlen_t sz;
   SEXP outList;
   SEXP origListNm;
+  SEXP origListClass;
   PROTECT_INDEX outList_ix;
   R_xlen_t i;
   R_xlen_t j;
@@ -41,6 +42,7 @@ SEXP Rhpc_splitList(SEXP orgList, SEXP splitNum)
   PROTECT_WITH_INDEX(outList, &outList_ix);
 
   PROTECT(origListNm = getAttrib(orgList, R_NamesSymbol));
+  PROTECT(origListClass = getAttrib(orgList, R_ClassSymbol));
 
   for ( i=0; i< spnum; i++){
     SEXP work;
@@ -55,11 +57,13 @@ SEXP Rhpc_splitList(SEXP orgList, SEXP splitNum)
     }
     if(origListNm != R_NilValue)
       setAttrib(work, R_NamesSymbol, workNm);
+    if(origListClass != R_NilValue)
+      setAttrib(work, R_ClassSymbol, origListClass);
     SET_VECTOR_ELT(outList, i, work);
     REPROTECT(outList, outList_ix);
     UNPROTECT(2);    
   }
-  UNPROTECT(2);
+  UNPROTECT(3);
   return(outList);
 }
 

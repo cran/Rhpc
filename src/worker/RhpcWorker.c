@@ -89,7 +89,7 @@ static void Rhpc_worker_init(void)
 #if defined(__ELF__)
   void *dlh = NULL;
   void *dls = NULL;
-  int failmpilib;
+  int failmpilib=0;
 # ifdef HAVE_DLADDR
     Dl_info info_MPI_Init;
     int rc ;
@@ -119,7 +119,10 @@ static void Rhpc_worker_init(void)
   if( failmpilib ){
 #   ifdef HAVE_DLADDR
       /* maybe get beter soname */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
       rc = dladdr((void *)MPI_Init, &info_MPI_Init);
+#pragma GCC diagnostic pop
       if (rc){
 	Rprintf("reload mpi library %s\n", info_MPI_Init.dli_fname );
 	if (!dlopen(info_MPI_Init.dli_fname, RTLD_GLOBAL | RTLD_LAZY)){
@@ -165,26 +168,17 @@ static void Rhpc_worker_init(void)
 
   /*
   {
+    int errorOccurred;
     SEXP ret, l_ret;
     PROTECT(ret=R_NilValue);
     PROTECT(l_ret=R_NilValue);
     errorOccurred=0;
-    l_ret=LCONS(install("library"),CONS(mkString("parallel"), R_NilValue));
+    l_ret=LCONS(install("library"),CONS(mkString("compiler"), R_NilValue));
     ret=R_tryEval(l_ret, R_GlobalEnv, &errorOccurred);
     UNPROTECT(2);
   }
   */
-  /*
-  {
-    SEXP cmdSexp, cmdexpr;
-    ParseStatus status;
-    PROTECT(cmdSexp = allocVector(STRSXP, 1));
-    SET_STRING_ELT(cmdSexp, 0, mkChar("function (fun, args)do.call(\"fun\", args)"));
-    cmdexpr = PROTECT(R_ParseVector(cmdSexp, -1, &status, R_NilValue));
-    setVar(install(".Rhpc_docall"),VECTOR_ELT(cmdexpr, 0),R_GlobalEnv);
-    UNPROTECT(2);
-  }
-  */
+
 }
 
 #include "RhpcWorker_LapplyLB.h"
@@ -199,6 +193,10 @@ static void Rhpc_worker_main(void){
   R_xlen_t mod = 0;
   SEXP cmdSexp, cmdexpr;
   ParseStatus status;
+/*
+  SEXP cmplang;
+  int  errorOccurred=0;
+*/
 
   push_policy();
 
@@ -218,6 +216,9 @@ static void Rhpc_worker_main(void){
     else if (getcmd==CMD_NAME_LAPPLY_SEQ)          Rhpc_worker_lapply_seq(cmd);
   }while(getcmd!=CMD_NAME_ENDL);
   UNPROTECT(3);
+  /*
+  UNPROTECT(4);
+  */
 
   pop_policy();
 }

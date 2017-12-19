@@ -64,9 +64,10 @@ static void Rhpc_worker_lapply_seq(int *cmd)
    }
 
   /* unserialize */
-  l_fun_arg=R_NilValue;
-  PROTECT(l_fun_arg);
-  PROTECT(fun_arg=Rhpc_unserialize(data));
+  fun_arg=Rhpc_unserialize(data);
+  UNPROTECT(1);
+  PROTECT(fun_arg);
+  PROTECT(l_fun_arg=R_NilValue);
 
   /* find function */
   fun = VECTOR_ELT(fun_arg,0);
@@ -106,7 +107,7 @@ static void Rhpc_worker_lapply_seq(int *cmd)
     */
     GET_CMD(cmdx, &getx, &getsubx, &cntx, &modx);
     if( getsubx == SUBCMD_EXIT ){
-      UNPROTECT(6);
+      UNPROTECT(5);
       return;
     }
     lenx = RHPC_SPLIT_SIZE * cntx + modx;
@@ -265,7 +266,7 @@ static void Rhpc_worker_lapply_seq(int *cmd)
     Free(status);
     DPRINT("send data wait end\n");
   }
-  UNPROTECT(11);
+  UNPROTECT(10);
 
   /* recv exit */
   {

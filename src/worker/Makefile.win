@@ -1,4 +1,3 @@
-include $(MKCONF)
 
 MPI_TYPE=MSMPI
 ifeq "$(MPI_TYPE)" "MSMPI"
@@ -23,26 +22,38 @@ SOURCES_C=RhpcWorker.c RhpcWorkerSerialize.c
 OBJECTS=$(SOURCES_C:.c=.o)
 
 
-all:	RhpcWorker$(TARGET_ARCH) RhpcWin$(TARGET_ARCH).cmd Rhpc$(TARGET_ARCH).cmd
+all:	RhpcWorker$(TARGET_ARCH).exe fakemaster$(TARGET_ARCH).exe RhpcWin$(TARGET_ARCH).cmd Rhpc$(TARGET_ARCH).cmd RhpcSpawnWin$(TARGET_ARCH).cmd
 	@echo $(CP) -p RhpcWorker$(TARGET_ARCH).exe $(R_PACKAGE_DIR)
 	@$(CP) -p RhpcWorker$(TARGET_ARCH).exe $(R_PACKAGE_DIR)
+	@echo $(CP) -p fakemaster$(TARGET_ARCH).exe $(R_PACKAGE_DIR)
+	@$(CP) -p fakemaster$(TARGET_ARCH).exe $(R_PACKAGE_DIR)
 	@$(CP) -p RhpcWin$(TARGET_ARCH).cmd $(R_PACKAGE_DIR)
 	@$(CP) -p Rhpc$(TARGET_ARCH).cmd $(R_PACKAGE_DIR)
+	@$(CP) -p RhpcSpawnWin$(TARGET_ARCH).cmd $(R_PACKAGE_DIR)
 
-RhpcWin$(TARGET_ARCH).cmd:
+RhpcWin$(TARGET_ARCH).cmd: RhpcWin.cmd.in
 	$(SED) -b -e 's/@@ARCH@@/$(TARGET_ARCH)/g' < RhpcWin.cmd.in > $@
 
-Rhpc$(TARGET_ARCH).cmd:
+Rhpc$(TARGET_ARCH).cmd: Rhpc.cmd.in
 	$(SED) -b -e 's/@@ARCH@@/$(TARGET_ARCH)/g' < Rhpc.cmd.in > $@
 
-RhpcWorker$(TARGET_ARCH): $(MPILIBA) $(OBJECTS)
+RhpcSpawnWin$(TARGET_ARCH).cmd: RhpcSpawnWin.cmd.in
+	$(SED) -b -e 's/@@ARCH@@/$(TARGET_ARCH)/g' < RhpcSpawnWin.cmd.in > $@
+
+RhpcWorker$(TARGET_ARCH).exe: $(MPILIBA) $(OBJECTS)
 	$(CC) $(ALL_CPPFLAGS) $(ALL_CFLAGS) $(OBJECTS) -o $@ $(PKG_LIBS) $(LIBR)
 
 RhpcWorker.o: RhpcWorker.c
 	$(CC) $(ALL_CPPFLAGS) $(ALL_CFLAGS) $(PKG_CFLAGS) -c $< -o $@
 
+fakemaster$(TARGET_ARCH).exe: fakemaster$(TARGET_ARCH).o
+	$(CC) $(ALL_CPPFLAGS) $(ALL_CFLAGS) $< -o $@
+
+fakemaster$(TARGET_ARCH).o: fakemaster.c
+	$(CC) $(ALL_CPPFLAGS) $(ALL_CFLAGS) -c $< -o $@
+
 RhpcSerialize.o: RhpcWorkerSerialize.c
 	$(CC) $(ALL_CPPFLAGS) $(ALL_CFLAGS) $(PKG_CFLAGS) -c $< -o $@
 
 clean:
-	@-$(RM) -f RhpcWorker RhpcWorker32.exe RhpcWorker64.exe RhpcWin32.cmd RhpcWin64.cmd $(OBJECTS)
+	@-$(RM) -f RhpcWorker RhpcWorker32.exe RhpcWorker64.exe RhpcWin32.cmd RhpcWin64.cmd RhpcSpawnWin32.cmd RhpcSpawnWin64.cmd $(OBJECTS) fakemaster*.o fakemaster*.exe

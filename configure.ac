@@ -1,5 +1,5 @@
 AC_PREREQ(2.62)
-AC_INIT(Rhpc, 0.15, nakama@com-one.com)
+AC_INIT(Rhpc, 0.17, nakama@com-one.com)
 
 AC_CONFIG_HEADER(src/common/config.h)
 
@@ -21,7 +21,7 @@ AC_MSG_RESULT(yes)
 AC_MSG_RESULT(no)
   ])
 
-: ${R_HOME=`R RHOME`}
+R_HOME=`echo ${R_HOME}`
 
 CHKLIBR=`${R_HOME}/bin${R_ARCH}/R CMD config --ldflags 2>/dev/null`
 have_libR=no

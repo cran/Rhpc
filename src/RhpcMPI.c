@@ -1,6 +1,6 @@
 /*
     Rhpc : R HPC environment
-    Copyright (C) 2012-2015  Junji NAKANO and Ei-ji Nakama
+    Copyright (C) 2012-2017  Junji NAKANO and Ei-ji Nakama
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -39,14 +39,20 @@
 #include <sched.h>
 #endif
 
+#pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #include <mpi.h>
-#pragma GCC diagnostic warning "-Wunused-parameter"
+#pragma GCC diagnostic pop
 
 
 #include <R.h>
 #include <Rinternals.h>
 #include "common/Rhpc.h"
+
+#ifdef WIN32
+#include "common/fakemaster.h"
+#include <windows.h>
+#endif
 
 static int initialize=0;
 static int finalize=0;
@@ -55,6 +61,148 @@ static int MPI_rank = 0;
 static int MPI_procs = 0;
 
 static MPI_Comm RHPC_Comm = MPI_COMM_NULL;
+
+/* fake master */
+#ifdef WIN32
+static void setmpienv(char *buf){
+  char *b = buf;
+  Rprintf("Import MPI environment variables.\n");
+  Rprintf("---------------------------------\n");
+  while(*b){
+    Rprintf(" %s\n",b);
+    _putenv(b);
+    b+=strlen(b)+1;
+  }
+  Rprintf("---------------------------------\n");
+}
+static void fakemastercmd(char *buf, size_t buf_sz, char *pipename)
+{
+  char fakemaster[FAKE_PATH_MAX];
+  char mpiexeccmd[FAKE_PATH_MAX];
+  int  errorOccurred=0;
+  SEXP ret;
+  SEXP cmdSexp, cmdexpr;
+  ParseStatus status;
+  
+  PROTECT(cmdSexp = allocVector(STRSXP, 1));
+#ifdef WIN64
+  SET_STRING_ELT(cmdSexp, 0, mkChar("system.file('fakemaster64.exe',package='Rhpc')"));
+#else /* WIN32 */
+  SET_STRING_ELT(cmdSexp, 0, mkChar("system.file('fakemaster32.exe',package='Rhpc')"));
+#endif
+  PROTECT( cmdexpr = R_ParseVector(cmdSexp, -1, &status, R_NilValue));
+  ret=R_tryEval(VECTOR_ELT(cmdexpr,0), R_GlobalEnv, &errorOccurred);
+  strncpy(fakemaster, CHAR(STRING_ELT(ret,0)), sizeof(fakemaster));
+  
+  ret=GetOption1(install("Rhpc.mpiexec"));
+  if (TYPEOF(ret) == STRSXP)
+    strncpy(mpiexeccmd, CHAR(STRING_ELT(ret,0)), sizeof(mpiexeccmd));    
+  else{
+    SEXP op_ex;
+    SEXP op_nm;
+    strncpy(mpiexeccmd, FAKE_DEFAULT_MPIEXEC,    sizeof(mpiexeccmd));
+    PROTECT(op_ex = LCONS(install("options"),
+                          CONS(ScalarString(mkChar(FAKE_DEFAULT_MPIEXEC)),
+			       R_NilValue)));
+    PROTECT(op_nm = allocVector(STRSXP, 2));
+    SET_STRING_ELT(op_nm,0,mkChar(""));
+    SET_STRING_ELT(op_nm,1,mkChar("Rhpc.mpiexec"));
+    setAttrib(op_ex, R_NamesSymbol, op_nm);
+    R_tryEval(op_ex, R_GlobalEnv, &errorOccurred);
+    UNPROTECT(2);    
+  }
+  snprintf(buf, buf_sz, "%s \"%s\" %s", mpiexeccmd, fakemaster, pipename); 
+  //MessageBox(NULL,buf,"CMD",MB_OK);
+  UNPROTECT(2);
+}
+
+static HANDLE hP = NULL;
+
+
+static int cheatMPImaster(void)
+{
+  PROCESS_INFORMATION fakemaster_pi = { 0 }; 
+  STARTUPINFO fakemaster_si = { sizeof(STARTUPINFO) };
+  DWORD dwNumberOfBytesRead;
+
+  char pipename[FAKE_PATH_MAX];
+  char cmd[FAKE_PATH_MAX];
+  char buf[FAKE_BUF_SZ];
+  int pid = getpid();
+ 
+  if(NULL==getenv("MSMPI_BIN")){
+    warning("MS-MPI is required to run Rhpc on Windows.\n"
+	    "please install MS-MPI.\n"
+	    "(https://msdn.microsoft.com/library/windows/desktop/bb524831)\n"
+	    "requires installation of MSMpiSetup.exe\n"
+	    "require install msmpisdk.msi if you wanna build Rhpc");
+    return(1);
+  }
+  if(NULL!=getenv("PMI_RANK")) return 0;
+    
+  Rprintf("Since this process was not started under mpiexec,\nstart up the cheat MPI master process:D\n");
+  
+  snprintf(pipename, sizeof(pipename), FAKE_PIPENAMEFMT, pid);
+  hP = CreateNamedPipe(pipename,
+    PIPE_ACCESS_DUPLEX|FILE_FLAG_WRITE_THROUGH,
+		       PIPE_TYPE_BYTE,
+		       1,
+		       FAKE_BUF_SZ,
+		       FAKE_BUF_SZ,
+		       FAKE_WAIT_TIME,
+		       NULL);
+  if(hP == INVALID_HANDLE_VALUE){
+    warning("Invalid handle value : named pipe %s", pipename);
+    return 1;
+  }
+
+  /* mpiexec */
+  fakemastercmd(cmd,sizeof(cmd), pipename);
+  if(0 == CreateProcess(NULL, cmd, NULL, NULL, FALSE, CREATE_NEW_CONSOLE|CREATE_NO_WINDOW|NORMAL_PRIORITY_CLASS, NULL, NULL, &fakemaster_si, &fakemaster_pi)){
+    char *msg;
+    FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER |FORMAT_MESSAGE_FROM_SYSTEM |FORMAT_MESSAGE_IGNORE_INSERTS,
+		  NULL,
+		  GetLastError(),
+		  MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+		  (LPTSTR) &msg,
+		  0,
+		  NULL
+		  );
+    warning(msg);
+    LocalFree(msg);
+    CloseHandle(hP);
+    return 1;
+  }
+  
+  /* wait for fakemaster */
+  if(!ConnectNamedPipe(hP, NULL)){
+    CloseHandle(hP);
+    warning("connection from fakemaster seems to have failed.");
+    return 1;
+  }
+
+  /* read MPI environment variable */
+  memset(buf,0,sizeof(buf));
+  if (!ReadFile(hP, buf, sizeof(buf), &dwNumberOfBytesRead, NULL)) {
+    char *msg;
+    FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER |FORMAT_MESSAGE_FROM_SYSTEM |FORMAT_MESSAGE_IGNORE_INSERTS,
+		  NULL,
+		  GetLastError(),
+		  MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+		  (LPTSTR) &msg,
+		  0,
+		  NULL
+		  );
+    warning(msg);
+    LocalFree(msg);
+    CloseHandle(hP);
+    return 1;
+  }
+
+  setmpienv(buf); 
+  return 0;
+}
+#endif
 
 
 SEXP Rhpc_mpi_initialize(void)
@@ -67,13 +215,20 @@ SEXP Rhpc_mpi_initialize(void)
 #if defined(__ELF__)
   void *dlh = NULL;
   void *dls = NULL;
-  int failmpilib;
+  int failmpilib=0;
 # ifdef HAVE_DLADDR
     Dl_info info_MPI_Init;
     int rc ;
 # endif
 #endif
 
+#ifdef WIN32
+    if(cheatMPImaster()){
+      warning("Rhpc can't initialize.");
+      return(R_NilValue);
+    }
+#endif
+    
   if(finalize){
     warning("Rhpc were already finalized.");
     return(R_NilValue);
@@ -96,7 +251,10 @@ SEXP Rhpc_mpi_initialize(void)
   if( failmpilib ){
 #   ifdef HAVE_DLADDR
       /* maybe get beter soname */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
       rc = dladdr((void *)MPI_Init, &info_MPI_Init);
+#pragma GCC diagnostic pop
       if (rc){
         Rprintf("reload mpi library %s\n", info_MPI_Init.dli_fname );
         if (!dlopen(info_MPI_Init.dli_fname, RTLD_GLOBAL | RTLD_LAZY)){
@@ -135,7 +293,13 @@ SEXP Rhpc_mpi_initialize(void)
     ParseStatus status;
 
     PROTECT(cmdSexp = allocVector(STRSXP, 1));
+#ifdef WIN64
+    SET_STRING_ELT(cmdSexp, 0, mkChar("system.file('RhpcSpawnWin64.cmd',package='Rhpc')"));
+#elif  WIN32
+    SET_STRING_ELT(cmdSexp, 0, mkChar("system.file('RhpcSpawnWin32.cmd',package='Rhpc')"));
+#else
     SET_STRING_ELT(cmdSexp, 0, mkChar("system.file('RhpcSpawn',package='Rhpc')"));
+#endif
     PROTECT( cmdexpr = R_ParseVector(cmdSexp, -1, &status, R_NilValue));
     ret=R_tryEval(VECTOR_ELT(cmdexpr,0), R_GlobalEnv, &errorOccurred);
     strncpy(RHPC_WORKER_CMD, CHAR(STRING_ELT(ret,0)), sizeof(RHPC_WORKER_CMD));
@@ -165,7 +329,13 @@ SEXP Rhpc_gethandle(SEXP procs)
   SEXP com;
   int num;
   MPI_Comm pcomm;
-
+  char **argv=MPI_ARGV_NULL;
+#ifdef WIN32
+  char *spawn_argv[3];
+  char r_home[FAKE_PATH_MAX];
+  char target_path[FAKE_PATH_MAX];
+#endif
+  
   if (RHPC_Comm == MPI_COMM_NULL){
     error("Rhpc_initialize is not called.");
     return(R_NilValue);
@@ -216,7 +386,32 @@ SEXP Rhpc_gethandle(SEXP procs)
     }
   }
 
-  _M(MPI_Comm_spawn(RHPC_WORKER_CMD, MPI_ARGV_NULL, num_procs,
+#ifdef WIN32
+  strncpy(r_home, getenv("R_HOME"), sizeof(r_home)); 
+  if(1){
+    int  errorOccurred=0;
+    SEXP ret;
+    SEXP cmdSexp, cmdexpr;
+    ParseStatus status;
+    
+    PROTECT(cmdSexp = allocVector(STRSXP, 1));
+#ifdef WIN64
+    SET_STRING_ELT(cmdSexp, 0, mkChar("system.file('RhpcWorker64.exe',package='Rhpc')"));
+#else
+    SET_STRING_ELT(cmdSexp, 0, mkChar("system.file('RhpcWorker32.exe',package='Rhpc')"));
+#endif
+    PROTECT( cmdexpr = R_ParseVector(cmdSexp, -1, &status, R_NilValue));
+    ret=R_tryEval(VECTOR_ELT(cmdexpr,0), R_GlobalEnv, &errorOccurred);
+    strncpy(target_path, CHAR(STRING_ELT(ret,0)), sizeof(target_path));
+    UNPROTECT(2);
+    spawn_argv[0]=r_home;
+    spawn_argv[1]=target_path;
+    spawn_argv[2]=NULL;
+    argv=spawn_argv;
+  }
+#endif
+  
+  _M(MPI_Comm_spawn(RHPC_WORKER_CMD, argv, num_procs,
 		    MPI_INFO_NULL, 0, MPI_COMM_SELF, &pcomm,  
 		    MPI_ERRCODES_IGNORE));
   _M(MPI_Intercomm_merge( pcomm, 0, SXP2COMMP(com)));
@@ -250,6 +445,25 @@ SEXP Rhpc_mpi_finalize(void)
   MPI_Finalize();
   finalize =1;
   Rhpc_set_options( -1, -1, MPI_COMM_NULL);
+
+#ifdef WIN32
+  /* close fakemaster */
+  if(hP!=NULL&&hP!=INVALID_HANDLE_VALUE){
+    char buf[FAKE_BUF_SZ];
+    strncpy(buf, "EOT", sizeof(buf));
+    DWORD dwNumberOfBytesWritten;
+
+    if(0==WriteFile(hP,
+		    buf,
+		    sizeof(buf),
+		    &dwNumberOfBytesWritten, NULL)){
+      CloseHandle(hP);
+      return(R_NilValue);
+    }
+    FlushFileBuffers(hP);
+    CloseHandle(hP);
+  }
+#endif
   return(R_NilValue);
 }
 
