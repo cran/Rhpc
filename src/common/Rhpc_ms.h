@@ -1,3 +1,22 @@
+/*
+    Rhpc : R HPC environment
+    Copyright (C) 2012-2018  Junji NAKANO and Ei-ji Nakama
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as published by
+    the Free Software Foundation, either version 3 of the License,
+    any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Affero General Public License for more details.
+
+    You should have received a copy of the GNU Affero General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+
 SEXP Rhpc_enquote(SEXP arg)
 {
   R_xlen_t i;
@@ -9,9 +28,13 @@ SEXP Rhpc_enquote(SEXP arg)
   argq = allocVector(VECSXP, xlength(arg));
   REPROTECT(argq , pqix);
   for(i=0;i<xlength(arg);i++){
-    SEXP ll =  LCONS(install("quote"),CONS(VECTOR_ELT(arg,i),R_NilValue));
+    SEXP ll;
+    SEXP aa;
+    PROTECT(aa = CONS(VECTOR_ELT(arg,i),R_NilValue));
+    PROTECT(ll =  LCONS(install("quote"),aa));
     SET_VECTOR_ELT(argq, i, ll);
     REPROTECT(argq ,pqix);
+    UNPROTECT(2);
   }
   setAttrib(argq, R_NamesSymbol, duplicate(nm));
   REPROTECT(argq ,pqix);

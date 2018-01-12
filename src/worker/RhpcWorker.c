@@ -1,6 +1,6 @@
 /*
     Rhpc : R HPC environment
-    Copyright (C) 2012-2015  Junji NAKANO and Ei-ji Nakama
+    Copyright (C) 2012-2018  Junji NAKANO and Ei-ji Nakama
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -119,10 +119,7 @@ static void Rhpc_worker_init(void)
   if( failmpilib ){
 #   ifdef HAVE_DLADDR
       /* maybe get beter soname */
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wpedantic"
-      rc = dladdr((void *)MPI_Init, &info_MPI_Init);
-#pragma GCC diagnostic pop
+      rc = mydladdr(MPI_Init, &info_MPI_Init);
       if (rc){
 	Rprintf("reload mpi library %s\n", info_MPI_Init.dli_fname );
 	if (!dlopen(info_MPI_Init.dli_fname, RTLD_GLOBAL | RTLD_LAZY)){
@@ -191,6 +188,7 @@ static void Rhpc_worker_main(void){
   int  getsubcmd = 0;
   R_xlen_t cnt = 0;
   R_xlen_t mod = 0;
+  int usequote = 0;
   SEXP cmdSexp, cmdexpr;
   ParseStatus status;
 /*
@@ -205,9 +203,9 @@ static void Rhpc_worker_main(void){
   PROTECT( cmdexpr = R_ParseVector(cmdSexp, -1, &status, R_NilValue));
   PROTECT(Rhpc_docall=VECTOR_ELT(cmdexpr,0));
   do{
-    SET_CMD(cmd, 0, 0, 0, 0);
+    SET_CMD(cmd, 0, 0, 0, 0, 0);
     _M(MPI_Bcast(cmd, CMDLINESZ, MPI_INT, 0, RHPC_Comm));
-    GET_CMD(cmd, &getcmd, &getsubcmd, &cnt, &mod);
+    GET_CMD(cmd, &getcmd, &getsubcmd, &cnt, &mod, &usequote);
 
     if      (getcmd==CMD_NAME_WORKERCALL_NORET)    Rhpc_worker_call(cmd,0);
     else if (getcmd==CMD_NAME_WORKERCALL_RET)      Rhpc_worker_call(cmd,1);

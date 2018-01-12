@@ -1,6 +1,6 @@
 /*
     Rhpc : R HPC environment
-    Copyright (C) 2012-2017  Junji NAKANO and Ei-ji Nakama
+    Copyright (C) 2012-2018  Junji NAKANO and Ei-ji Nakama
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -39,11 +39,7 @@
 #include <sched.h>
 #endif
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
 #include <mpi.h>
-#pragma GCC diagnostic pop
-
 
 #include <R.h>
 #include <Rinternals.h>
@@ -158,7 +154,8 @@ static int cheatMPImaster(void)
 
   /* mpiexec */
   fakemastercmd(cmd,sizeof(cmd), pipename);
-  if(0 == CreateProcess(NULL, cmd, NULL, NULL, FALSE, CREATE_NEW_CONSOLE|CREATE_NO_WINDOW|NORMAL_PRIORITY_CLASS, NULL, NULL, &fakemaster_si, &fakemaster_pi)){
+  fakemaster_si.wShowWindow=SW_HIDE;
+  if(0 == CreateProcess(NULL, cmd, NULL, NULL, FALSE, CREATE_NEW_CONSOLE|NORMAL_PRIORITY_CLASS, NULL, NULL, &fakemaster_si, &fakemaster_pi)){
     char *msg;
     FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER |FORMAT_MESSAGE_FROM_SYSTEM |FORMAT_MESSAGE_IGNORE_INSERTS,
 		  NULL,
@@ -247,19 +244,16 @@ SEXP Rhpc_mpi_initialize(void)
       failmpilib = 1; /* maybe can't loaded MPI library */
     dlclose(dlh);
   }
-  
+
   if( failmpilib ){
 #   ifdef HAVE_DLADDR
-      /* maybe get beter soname */
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wpedantic"
-      rc = dladdr((void *)MPI_Init, &info_MPI_Init);
-#pragma GCC diagnostic pop
-      if (rc){
-        Rprintf("reload mpi library %s\n", info_MPI_Init.dli_fname );
-        if (!dlopen(info_MPI_Init.dli_fname, RTLD_GLOBAL | RTLD_LAZY)){
-  	  Rprintf("%s\n",dlerror());
-        }
+    /* maybe get beter soname */
+      rc = mydladdr(MPI_Init, &info_MPI_Init);
+      if(rc){
+	Rprintf("reload mpi library %s\n", info_MPI_Init.dli_fname );
+	if(!dlopen(info_MPI_Init.dli_fname, RTLD_GLOBAL | RTLD_LAZY)){
+	  Rprintf("%s\n",dlerror());
+	}
       }else{
         Rprintf("Can't get Information by dladdr of function MPI_Init,%s\n",
 		dlerror());
@@ -440,7 +434,7 @@ SEXP Rhpc_mpi_finalize(void)
     return(R_NilValue);
   }
 
-  SET_CMD(cmd, CMD_NAME_ENDL, SUBCMD_NORMAL, 0, 0);
+  SET_CMD(cmd, CMD_NAME_ENDL, SUBCMD_NORMAL, 0, 0, 0);
   _M(MPI_Bcast(cmd, CMDLINESZ, MPI_INT, 0, RHPC_Comm));
   MPI_Finalize();
   finalize =1;

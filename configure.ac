@@ -3,7 +3,7 @@ AC_INIT(Rhpc, 0.17, nakama@com-one.com)
 
 AC_CONFIG_HEADER(src/common/config.h)
 
-AC_CHECK_HEADERS([sched.h sys/types.h unistd.h])
+AC_CHECK_HEADERS([sched.h sys/types.h unistd.h dlfcn.h])
 AC_CHECK_FUNCS([sched_getscheduler])
 
 AC_MSG_CHECKING(for dladdr)

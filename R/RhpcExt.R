@@ -1,8 +1,11 @@
-Rhpc_EvalQ<-function(cl, expr, envir=.GlobalEnv)
-    Rhpc_worker_call(cl, eval, substitute(expr), envir=envir)
+Rhpc_EvalQ<-function(cl, expr,
+                     usequote=ifelse(is.logical(getOption("Rhpc.usequote")),getOption("Rhpc.usequote"),TRUE),
+                     envir=.GlobalEnv)
+    Rhpc_worker_call(cl, eval, substitute(expr), usequote=usequote, envir=envir)
 
 
-Rhpc_apply<- function(cl = NULL, X, MARGIN, FUN, ...)
+Rhpc_apply<- function(cl = NULL, X, MARGIN, FUN, ...,
+                      usequote=ifelse(is.logical(getOption("Rhpc.usequote")),getOption("Rhpc.usequote"),TRUE))
 {
     ## from parApply in parallel package
     ## rewrite later
@@ -59,7 +62,7 @@ Rhpc_apply<- function(cl = NULL, X, MARGIN, FUN, ...)
         lapply(seq_len(d2), function(i) newX[,i])
     } else
         lapply(seq_len(d2), function(i) array(newX[,i], d.call, dn.call))
-    ans <- Rhpc_lapply(cl = cl, X = arglist, FUN = FUN, ...)
+    ans <- Rhpc_lapply(cl = cl, X = arglist, FUN = FUN, ..., usequote=usequote)
 
     ## answer dims and dimnames
 
@@ -89,12 +92,14 @@ Rhpc_apply<- function(cl = NULL, X, MARGIN, FUN, ...)
     return(ans)
 }
 
-Rhpc_sapply<-function (cl = NULL, X, FUN, ..., simplify = TRUE, USE.NAMES = TRUE) 
+Rhpc_sapply<-function (cl = NULL, X, FUN, ...,
+                       usequote=ifelse(is.logical(getOption("Rhpc.usequote")),getOption("Rhpc.usequote"),TRUE),
+                       simplify = TRUE, USE.NAMES = TRUE) 
 {
     ## rewrite later
 
     FUN <- match.fun(FUN)
-    answer <- Rhpc_lapply(cl, X = X, FUN = FUN, ...)
+    answer <- Rhpc_lapply(cl, X = X, FUN = FUN, ..., usequote=usequote)
     if (USE.NAMES && is.character(X) && is.null(names(answer))) 
         names(answer) <- X
     if (!identical(simplify, FALSE) && length(answer)) 
@@ -103,12 +108,14 @@ Rhpc_sapply<-function (cl = NULL, X, FUN, ..., simplify = TRUE, USE.NAMES = TRUE
         answer   
 }
 
-Rhpc_sapplyLB<-function (cl = NULL, X, FUN, ..., simplify = TRUE, USE.NAMES = TRUE) 
+Rhpc_sapplyLB<-function (cl = NULL, X, FUN, ...,
+                         usequote=ifelse(is.logical(getOption("Rhpc.usequote")),getOption("Rhpc.usequote"),TRUE),
+                         simplify = TRUE, USE.NAMES = TRUE) 
 {
     ## rewrite later
 
     FUN <- match.fun(FUN)
-    answer <- Rhpc_lapplyLB(cl, X = X, FUN = FUN, ...)
+    answer <- Rhpc_lapplyLB(cl, X = X, FUN = FUN, ..., usequote=usequote)
     if (USE.NAMES && is.character(X) && is.null(names(answer))) 
         names(answer) <- X
     if (!identical(simplify, FALSE) && length(answer)) 

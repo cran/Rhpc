@@ -1,6 +1,6 @@
 /*
     Rhpc : R HPC environment
-    Copyright (C) 2012-2015  Junji NAKANO and Ei-ji Nakama
+    Copyright (C) 2012-2018  Junji NAKANO and Ei-ji Nakama
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -37,7 +37,7 @@ __inline static void Rhpc_mpi_lapply_LB_exit(int procs, MPI_Comm comm)
   MPI_Request *request=Calloc((procs-1),MPI_Request);
   MPI_Status  *status =Calloc((procs-1),MPI_Status);
 
-  SET_CMD(cmde, CMD_NAME_LAPPLY_LB , SUBCMD_EXIT, 0, 0 );
+  SET_CMD(cmde, CMD_NAME_LAPPLY_LB , SUBCMD_EXIT, 0, 0, 0 );
   for (i=1; i < procs ; i++){
     DPRINT("worker exit rank=%ld\n",i);
     _M(MPI_Isend(cmde,  (int)CMDLINESZ, MPI_INT, i, RHPC_CTRL_TAG, comm, &request[i-1]));
@@ -49,8 +49,9 @@ __inline static void Rhpc_mpi_lapply_LB_exit(int procs, MPI_Comm comm)
 
 
 static void Rhpc_mpi_lapply_LB_send(char *workers, int procs,
-				 R_xlen_t *start, SEXP X,
-				 MPI_Comm comm)
+				    R_xlen_t *start, SEXP X,
+				    SEXP usequote,
+				    MPI_Comm comm)
 {
   R_xlen_t i,j;
   int cur_workers=0;
@@ -88,7 +89,7 @@ static void Rhpc_mpi_lapply_LB_send(char *workers, int procs,
       SET_VECTOR_ELT(tag,0,ScalarReal((double)(cix+offset)));
       SET_VECTOR_ELT(tag,1,VECTOR_ELT(X,cix+offset));
       
-      REPROTECT(Xsel= Rhpc_serialize(tag), ix2);
+      REPROTECT(Xsel= Rhpc_serialize_norealloc(tag), ix2);
       SET_VECTOR_ELT(sendlist,i-1, Xsel);
     }
   }
@@ -115,7 +116,7 @@ static void Rhpc_mpi_lapply_LB_send(char *workers, int procs,
 	R_xlen_t lens = xlength(VECTOR_ELT(sendlist,i-1));
 	R_xlen_t cnts = lens / RHPC_SPLIT_SIZE;
 	R_xlen_t mods = lens % RHPC_SPLIT_SIZE;
-	SET_CMD(cmds, CMD_NAME_LAPPLY_LB , SUBCMD_NORMAL, cnts, mods );
+	SET_CMD(cmds, CMD_NAME_LAPPLY_LB , SUBCMD_NORMAL, cnts, mods, INTEGER(usequote)[0] );
 	_M(MPI_Isend(cmds,   (int)CMDLINESZ, MPI_INT, i,
 		     RHPC_CTRL_TAG, comm, &request[sendcalls]));
 	sendcalls++;
@@ -148,7 +149,7 @@ static void Rhpc_mpi_lapply_LB_send(char *workers, int procs,
 
 
 
-SEXP Rhpc_mpi_lapply_LB(SEXP cl, SEXP X, SEXP args)
+SEXP Rhpc_mpi_lapply_LB(SEXP cl, SEXP X, SEXP args, SEXP usequote)
 {
   R_xlen_t i;
 
@@ -160,6 +161,7 @@ SEXP Rhpc_mpi_lapply_LB(SEXP cl, SEXP X, SEXP args)
   R_xlen_t szi;
   R_xlen_t cnti;
   R_xlen_t modi;
+  int dummy_quote;
   int cmd[CMDLINESZ];
 
   R_xlen_t xlen;
@@ -201,14 +203,14 @@ SEXP Rhpc_mpi_lapply_LB(SEXP cl, SEXP X, SEXP args)
   /* serialize */
   PROTECT(names);
   PROTECT(l_out);
-  PROTECT(out=Rhpc_serialize(args));
+  PROTECT(out=Rhpc_serialize_norealloc(args));
 
   /* cmd send */
   szi = xlength(out);
   cnti = szi/RHPC_SPLIT_SIZE;
   modi = szi%RHPC_SPLIT_SIZE;
   SET_CMD(cmd, CMD_NAME_LAPPLY_LB,
-	  SUBCMD_NORMAL,cnti, modi);
+	  SUBCMD_NORMAL,cnti, modi, INTEGER(usequote)[0]);
   _M(MPI_Bcast(cmd, CMDLINESZ, MPI_INT, 0, comm));
 
   /* send data */
@@ -239,7 +241,7 @@ SEXP Rhpc_mpi_lapply_LB(SEXP cl, SEXP X, SEXP args)
   memset((void*)workers,0,(procs));
   while(start<xlen || Rhpc_mpi_lapply_LB_active_workers(workers,procs)){
     MPI_Status stat;
-    Rhpc_mpi_lapply_LB_send(workers, procs, &start, X, comm);
+    Rhpc_mpi_lapply_LB_send(workers, procs, &start, X, usequote, comm);
 
     if(Rhpc_mpi_lapply_LB_active_workers(workers,procs)){
       DPRINT("wait PROBE\n");
@@ -257,7 +259,7 @@ SEXP Rhpc_mpi_lapply_LB(SEXP cl, SEXP X, SEXP args)
 	int calls;
 	R_xlen_t index;
 	_M(MPI_Recv(cmdr, CMDLINESZ, MPI_INT, wkr, RHPC_CTRL_TAG, comm, &stat));
-	GET_CMD(cmdr, &cmdmainr, &cmdsubr, &cntr, &modr);
+	GET_CMD(cmdr, &cmdmainr, &cmdsubr, &cntr, &modr, &dummy_quote);
 	lenr = RHPC_SPLIT_SIZE * cntr + modr;
 	REPROTECT(indata=allocVector(RAWSXP,lenr),indata_ix);
 	

@@ -76,6 +76,18 @@ static void OutCharMem(R_outpstream_t stream, int c)
     mb->buf[mb->count++] = (char) c;
 }
 
+static void OutCharMem_onlysize(R_outpstream_t stream, int c)
+{
+    membuf_t mb = stream->data;
+    mb->count++;
+}
+
+static void OutCharMem_norealloc(R_outpstream_t stream, int c)
+{
+    membuf_t mb = stream->data;
+    mb->buf[mb->count++] = (char) c;
+}
+
 static void OutBytesMem(R_outpstream_t stream, void *buf, int length)
 {
     membuf_t mb = stream->data;
@@ -86,6 +98,26 @@ static void OutBytesMem(R_outpstream_t stream, void *buf, int length)
 	error("serialization is too large to store in a raw vector");
 #endif
     if (needed > mb->size) resize_buffer(mb, needed);
+    memcpy(mb->buf + mb->count, buf, length);
+    mb->count = needed;
+}
+
+static void OutBytesMem_onlysize(R_outpstream_t stream, void *buf, int length)
+{
+    membuf_t mb = stream->data;
+    R_xlen_t needed = mb->count + (R_xlen_t) length;
+    mb->count = needed;
+}
+
+static void OutBytesMem_norealloc(R_outpstream_t stream, void *buf, int length)
+{
+    membuf_t mb = stream->data;
+    R_xlen_t needed = mb->count + (R_xlen_t) length;
+#ifndef LONG_VECTOR_SUPPORT
+    /* There is a potential overflow here on 32-bit systems */
+    if((double) mb->count + length > (double) INT_MAX)
+	error("serialization is too large to store in a raw vector");
+#endif
     memcpy(mb->buf + mb->count, buf, length);
     mb->count = needed;
 }
@@ -129,6 +161,27 @@ static void InitMemOutPStream(R_outpstream_t stream, membuf_t mb,
 		     OutCharMem, OutBytesMem, phook, pdata);
 }
 
+static void InitMemOutPStream_onlysize(R_outpstream_t stream, membuf_t mb,
+				       R_pstream_format_t type, int version,
+				       SEXP (*phook)(SEXP, SEXP), SEXP pdata)
+{
+    mb->count = 0;
+    mb->size = 0;
+    mb->buf = NULL;
+    R_InitOutPStream(stream, (R_pstream_data_t) mb, type, version,
+		     OutCharMem_onlysize, OutBytesMem_onlysize, phook, pdata);
+}
+
+static void InitMemOutPStream_norealloc(R_outpstream_t stream, membuf_t mb,
+					R_pstream_format_t type, int version,
+					SEXP (*phook)(SEXP, SEXP), SEXP pdata)
+{
+    mb->count = 0;
+    /* mb->size and mb->buf from upper function */
+    R_InitOutPStream(stream, (R_pstream_data_t) mb, type, version,
+		     OutCharMem_norealloc, OutBytesMem_norealloc, phook, pdata);
+}
+
 static void free_mem_buffer(void *data)
 {
     membuf_t mb = data;
@@ -147,6 +200,17 @@ static SEXP CloseMemOutPStream(R_outpstream_t stream)
     PROTECT(val = allocVector(RAWSXP, mb->count));
     memcpy(RAW(val), mb->buf, mb->count);
     free_mem_buffer(mb);
+    UNPROTECT(1);
+    return val;
+}
+
+static SEXP CloseMemOutPStream_onlysize(R_outpstream_t stream)
+{
+    SEXP val;
+    membuf_t mb = stream->data;
+
+    PROTECT(val = allocVector(REALSXP, 1));
+    REAL(val)[0] = mb->count;
     UNPROTECT(1);
     return val;
 }
@@ -178,6 +242,66 @@ SEXP Rhpc_serialize(SEXP object)
     return val;
 }
 
+SEXP Rhpc_serialize_onlysize(SEXP object)
+{
+    struct R_outpstream_st out;
+    R_pstream_format_t type;
+    int version;
+    struct membuf_st mbs;
+    SEXP val;
+
+    version = R_DefaultSerializeVersion;
+    type = R_pstream_binary_format;
+
+
+    /* set up a context which will free the buffer if there is an error */
+    
+    InitMemOutPStream_onlysize(&out, &mbs, type, version, NULL, R_NilValue);
+    R_Serialize(object, &out);
+    
+    val =  CloseMemOutPStream_onlysize(&out);
+    
+    /* end the context after anything that could raise an error but before
+       calling OutTerm so it doesn't get called twice */
+
+    return val;  
+}
+
+SEXP Rhpc_serialize_norealloc(SEXP object)
+{
+    struct R_outpstream_st out;
+    R_pstream_format_t type;
+    int version;
+    struct membuf_st mbs;
+    SEXP val;
+    SEXP object_size=R_NilValue;
+
+    PROTECT(object_size=Rhpc_serialize_onlysize(object));
+
+    if(object_size == R_NilValue){
+      UNPROTECT(1);
+      return(R_UnboundValue);
+    }
+    
+    mbs.size = (R_xlen_t)REAL(object_size)[0];
+    PROTECT(val = allocVector(RAWSXP, mbs.size));
+    mbs.buf  = RAW(val);
+    
+    version = R_DefaultSerializeVersion;
+    type = R_pstream_binary_format;
+
+
+    /* set up a context which will free the buffer if there is an error */
+    
+    InitMemOutPStream_norealloc(&out, &mbs, type, version, NULL, R_NilValue);
+    R_Serialize(object, &out);
+    
+    /* end the context after anything that could raise an error but before
+       calling OutTerm so it doesn't get called twice */
+
+    UNPROTECT(2);
+    return val;
+}
 
 SEXP Rhpc_unserialize(SEXP object)
 {

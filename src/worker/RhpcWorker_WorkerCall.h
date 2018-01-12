@@ -1,6 +1,6 @@
 /*
     Rhpc : R HPC environment
-    Copyright (C) 2012-2015  Junji NAKANO and Ei-ji Nakama
+    Copyright (C) 2012-2018  Junji NAKANO and Ei-ji Nakama
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -24,6 +24,7 @@ static void Rhpc_worker_call(int *cmd, int action)
   int  getsubcmd = 0;
   R_xlen_t cnti = 0;
   R_xlen_t modi = 0;
+  int  usequote = 0;
   /* data recive alloc */
   R_xlen_t leni;
   SEXP data;
@@ -41,7 +42,7 @@ static void Rhpc_worker_call(int *cmd, int action)
   /* serialize */
   SEXP l_out,out;
 
-  GET_CMD(cmd, &getcmd, &getsubcmd, &cnti, &modi);
+  GET_CMD(cmd, &getcmd, &getsubcmd, &cnti, &modi, &usequote);
 
   /* data recive alloc */
   leni = cnti * RHPC_SPLIT_SIZE + modi;
@@ -56,9 +57,7 @@ static void Rhpc_worker_call(int *cmd, int action)
    }
 
   /* unserialize */
-  fun_arg=Rhpc_unserialize(data);
-  UNPROTECT(1);
-  PROTECT(fun_arg);
+  PROTECT(fun_arg=Rhpc_unserialize(data));
   PROTECT(l_fun_arg=R_NilValue);
 
   if(action == 2){ /* Export */   
@@ -88,20 +87,23 @@ static void Rhpc_worker_call(int *cmd, int action)
 
   }
   /* quote */
-  PROTECT(argq=Rhpc_enquote(arg));
+  if (usequote)
+    PROTECT(argq=Rhpc_enquote(arg));
+  else
+    PROTECT(argq=arg);
 
   /* eval */
   errorOccurred=0;
   
-  PROTECT(lng = LCONS(Rhpc_docall, CONS(fun,CONS(argq, R_NilValue))));
-  /*
-    PROTECT(lng = LCONS(install("do.call"), CONS(fun, CONS(arg, CONS(ScalarLogical(1), R_NilValue)))));
-    SET_TAG(CDDDR(lng), install("quote"));
-  */
+  if (usequote)
+    PROTECT(lng = LCONS(Rhpc_docall, CONS(fun,CONS(argq, R_NilValue))));
+  else
+    PROTECT(lng = LCONS(install("do.call"), CONS(fun, CONS(argq, R_NilValue))));
+
   ret=R_tryEval(lng, R_GlobalEnv, &errorOccurred);
     
   if(action == 0){
-    UNPROTECT(7);
+    UNPROTECT(8);
     return;
   }
   
@@ -125,7 +127,7 @@ static void Rhpc_worker_call(int *cmd, int action)
   
   /* serialize */
   PROTECT(l_out=R_NilValue);
-  PROTECT(out=Rhpc_serialize(ret));
+  PROTECT(out=Rhpc_serialize_norealloc(ret));
 
   /* send */
   {
@@ -143,7 +145,7 @@ static void Rhpc_worker_call(int *cmd, int action)
     MPI_Status  *status =Calloc(reqcnt,MPI_Status);
     int calls;
 
-    SET_CMD(cmd, getcmd, SUBCMD_NORMAL, cnto, modo );
+    SET_CMD(cmd, getcmd, SUBCMD_NORMAL, cnto, modo, usequote );
 
     _M(MPI_Gather(cmd, CMDLINESZ, MPI_INT, dummy_cmd, CMDLINESZ, MPI_INT, 0, RHPC_Comm));
 
@@ -165,7 +167,7 @@ static void Rhpc_worker_call(int *cmd, int action)
     Free(request);
     Free(status);
   }
-  UNPROTECT(10);
+  UNPROTECT(11);
 
   return;
 }

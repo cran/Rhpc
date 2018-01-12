@@ -1,3 +1,20 @@
+/*
+    Rhpc : R HPC environment
+    Copyright (C) 2012-2018  Junji NAKANO and Ei-ji Nakama
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as published by
+    the Free Software Foundation, either version 3 of the License,
+    any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Affero General Public License for more details.
+
+    You should have received a copy of the GNU Affero General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
 
 #ifdef HAVE_SCHED_H
 #include <sched.h>
@@ -34,6 +51,20 @@ __inline static void DPRINT(char *fmt,...)
     va_end(arg);
   }
   return;
+}
+#endif
+
+#ifdef HAVE_DLFCN_H
+#include <dlfcn.h>
+__inline static int mydladdr( int(*mpiinit)(int*,char***), Dl_info *info){
+  int rc;
+  int (*__mydladdr)(int(*)(int*,char***), Dl_info *) = NULL;
+  void *dlh =NULL;
+  dlh = dlopen (NULL, RTLD_NOW|RTLD_GLOBAL);
+  *(void **)(&__mydladdr)=dlsym(dlh, "dladdr");
+  rc=__mydladdr(mpiinit,info);
+  dlclose(dlh);
+  return(rc);
 }
 #endif
 
@@ -85,13 +116,15 @@ __inline static SEXP _CHK(SEXP _X)
 
 
 SEXP Rhpc_serialize(SEXP);
+SEXP Rhpc_serialize_onlysize(SEXP);
+SEXP Rhpc_serialize_norealloc(SEXP);
 SEXP Rhpc_unserialize(SEXP);
 
 #if !defined(WORKER) /* master only */
 static char RHPC_WORKER_CMD[4096];
 #endif
 #define RHPC_SPLIT_SIZE (1UL<<30)
-#define CMDLINESZ 4
+#define CMDLINESZ 5
 #define RHPC_CTRL_TAG 0
 #define TAGCAL(_x) ((int)_x + 1)
 
@@ -105,7 +138,7 @@ enum CMD_NAME{
   CMD_NAME_MODE,
   CMD_NAME_SERIALIZE_MODE,
   CMD_NAME_ENDL
-};
+}; /* 0 - 8 */
 
 enum SUBCMD_NAME{
   SUBCMD_NORMAL,
@@ -116,24 +149,27 @@ enum POS_NAME{
   CMD_MAIN,
   CMD_SUB,
   CMD_CNT,
-  CMD_MOD
+  CMD_MOD,
+  CMD_QUO
 };
 
-__inline static void SET_CMD(int *cmd, int m, int s, R_xlen_t cnt, R_xlen_t mod)
+__inline static void SET_CMD(int *cmd, int m, int s, R_xlen_t cnt, R_xlen_t mod, int usequote)
 {
   cmd[CMD_MAIN]=m;
   cmd[CMD_SUB]=s;
   cmd[CMD_CNT]=(int)cnt;
   cmd[CMD_MOD]=(int)mod;
+  cmd[CMD_QUO]=usequote;
 }
 
-__inline static void GET_CMD(int *cmd, int *m, int *s, R_xlen_t *cnt, R_xlen_t *mod)
+__inline static void GET_CMD(int *cmd, int *m, int *s, R_xlen_t *cnt, R_xlen_t *mod, int *usequote)
 {
   *m=cmd[CMD_MAIN];
   *s=cmd[CMD_SUB];
   *cnt=(R_xlen_t)cmd[CMD_CNT];
   *mod=(R_xlen_t)cmd[CMD_MOD];
-  DPRINT("CMD[%d]:%d:%d:%d:%d\n", getpid(),cmd[0], cmd[1], cmd[2], cmd[3]); 
+  *usequote=cmd[CMD_QUO];
+  DPRINT("CMD[%d]:%d:%d:%d:%d:%d\n", getpid(),cmd[0], cmd[1], cmd[2], cmd[3], cmd[4]); 
 } 
 
 #if defined(WORKER)
@@ -194,12 +230,17 @@ static void op_comm_free(SEXP com)
   Free(ptr);
 }
 
+#define RHPC_MSG_BUF 256
 __inline static void Rhpc_set_options(int rank, int procs, MPI_Comm ccomm)
 {
   SEXP op_ex;
   SEXP op_nm;
   MPI_Comm *ptr;
-  SEXP com=R_NilValue;
+  SEXP p_options=R_NilValue;
+  SEXP p_rank =R_NilValue;
+  SEXP p_procs=R_NilValue;
+  SEXP p_ccomm=R_NilValue;
+  SEXP p_fcomm=R_NilValue;
   int errorOccurred=0;
 
   /* Information */
@@ -207,32 +248,53 @@ __inline static void Rhpc_set_options(int rank, int procs, MPI_Comm ccomm)
   char host_name[MPI_MAX_PROCESSOR_NAME]="";
   int  host_name_len;
 
+  PROTECT(p_options=install("options"));
+
+  
   if(rank != -1){
+    char *recvbuf = NULL;
+    char sendbuf[RHPC_MSG_BUF];
     f_comm=MPI_Comm_c2f(ccomm);
     MPI_Get_processor_name(host_name, &host_name_len);
 
-    Rprintf("rank %5d/%5d(%d) : %-32.32s : %5d\n",
-	    rank, procs, f_comm, host_name, getpid());   
+    if(rank==0) recvbuf=Calloc(RHPC_MSG_BUF*procs, char);
 
+    snprintf(sendbuf, RHPC_MSG_BUF,
+	     "%5d/%5d(%11d) : %-32.32s : %5d\n",
+	     rank, procs, f_comm, host_name, getpid());   
+    MPI_Gather(sendbuf, RHPC_MSG_BUF, MPI_BYTE,
+	       recvbuf, RHPC_MSG_BUF, MPI_BYTE,
+	       0, ccomm);
+    if(rank==0 && recvbuf!=NULL){
+      int i;
+      Rprintf("%5s/%5s(%11s) : %-32.32s : %5s\n",
+	      "rank", "procs", "f.comm","processor_name", "pid");
+      for(i=0; i<procs; i++){
+	Rprintf("%s", recvbuf + (i*RHPC_MSG_BUF)); 
+      }
+      Free(recvbuf);
+    }
+
+    PROTECT(p_rank = ScalarInteger(rank));
+    PROTECT(p_procs= ScalarInteger(procs));
     ptr = Calloc(1,MPI_Comm);
-    PROTECT(com = R_MakeExternalPtr(ptr, R_NilValue, R_NilValue));
-    *((MPI_Comm*)R_ExternalPtrAddr(com)) = ccomm;
-    R_RegisterCFinalizer(com, op_comm_free);
-    PROTECT(op_ex = LCONS(install("options"),
-			  CONS(ScalarInteger(rank),
-			       CONS(ScalarInteger(procs),
-				    CONS(com,
-					 CONS(ScalarInteger(f_comm),
-					      R_NilValue))))));
+    PROTECT(p_ccomm = R_MakeExternalPtr(ptr, R_NilValue, R_NilValue));
+    *((MPI_Comm*)R_ExternalPtrAddr(p_ccomm)) = ccomm;
+    R_RegisterCFinalizer(p_ccomm, op_comm_free);
+    PROTECT(p_fcomm = ScalarInteger(f_comm));
+    
   }else{
-    PROTECT(com);
-    PROTECT(op_ex = LCONS(install("options"),
-			  CONS(R_NilValue,
-			       CONS(R_NilValue,
-				    CONS(R_NilValue,
-					 CONS(R_NilValue,
-					      R_NilValue))))));
+    PROTECT(p_rank);
+    PROTECT(p_procs);
+    PROTECT(p_ccomm);
+    PROTECT(p_fcomm);
   }
+  PROTECT(op_ex = LCONS(p_options,
+			CONS(p_rank,
+			     CONS(p_procs,
+				  CONS(p_ccomm,
+				       CONS(p_fcomm,
+					    R_NilValue))))));
   PROTECT(op_nm = allocVector(STRSXP, 5));
   SET_STRING_ELT(op_nm,0,mkChar(""));
   SET_STRING_ELT(op_nm,1,mkChar("Rhpc.mpi.rank"));
@@ -242,7 +304,7 @@ __inline static void Rhpc_set_options(int rank, int procs, MPI_Comm ccomm)
   setAttrib(op_ex, R_NamesSymbol, op_nm);
   R_tryEval(op_ex, R_GlobalEnv, &errorOccurred);
 
-  UNPROTECT(3);
+  UNPROTECT(7);
 }
 
 

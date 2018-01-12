@@ -18,27 +18,31 @@
 \alias{Rhpc_enquote}
 \alias{Rhpc_splitList}
 \alias{Rhpc_serialize}
+\alias{Rhpc_serialize_onlysize}
+\alias{Rhpc_serialize_norealloc}
 \alias{Rhpc_unserialize}
 
 \usage{
 Rhpc_initialize()
 Rhpc_finalize()
 Rhpc_getHandle(procs)
-Rhpc_worker_call(cl, FUN, ...)
-Rhpc_worker_noback(cl, FUN, ...)
-Rhpc_lapply(cl, X, FUN, ...)
-Rhpc_lapplyLB(cl, X, FUN, ...)
-Rhpc_sapply(cl, X, FUN, ..., simplify, USE.NAMES)
-Rhpc_sapplyLB(cl, X, FUN, ..., simplify, USE.NAMES)
-Rhpc_apply(cl, X, MARGIN, FUN, ...)
+Rhpc_worker_call(cl, FUN, ..., usequote)
+Rhpc_worker_noback(cl, FUN, ..., usequote)
+Rhpc_lapply(cl, X, FUN, ...,usequote)
+Rhpc_lapplyLB(cl, X, FUN, ..., usequote)
+Rhpc_sapply(cl, X, FUN, ..., usequote, simplify, USE.NAMES)
+Rhpc_sapplyLB(cl, X, FUN, ..., usequote, simplify, USE.NAMES)
+Rhpc_apply(cl, X, MARGIN, FUN, ..., usequote)
 Rhpc_numberOfWorker(cl)
-Rhpc_Export(cl, variableNames, pos, envir)
-Rhpc_EvalQ(cl, expr, envir)
+Rhpc_Export(cl, variableNames, usequote, pos, envir)
+Rhpc_EvalQ(cl, expr, usequote, envir)
 Rhpc_setupRNG(cl, iseed)
 }
 \arguments{
   \item{cl}{external pointer to MPI communicator}
-  \item{procs}{number of process, void if Rhpc}
+  \item{procs}{Specify the number of processes when performing dynamic
+    process generation (use the MPI_Comm_spawn), only static generate
+    if blank}
   \item{X}{vector or list.
     Divided into smaller vectors according to the number of workers, and
     distributed to workers when the function is first executed. One-sided
@@ -73,6 +77,7 @@ Rhpc_setupRNG(cl, iseed)
     Distributed by collective communication at first, then they are not
     sent again
   }
+  \item{usequote}{user can choose usequpte=FALSE for performance improvement}
   \item{variableNames}{string vector} 
   \item{iseed}{random number seed}
   \item{expr}{expression to evaluate}
@@ -107,7 +112,10 @@ Rhpc_setupRNG(cl, iseed)
 \dontrun{
 # use Rhpc command
 Rhpc_initialize()
-cl <- Rhpc_getHandle() # ommit number of worker if use Rhpc batch
+
+# If you start the process dynamically on Windows, the dos window of
+# mpiexec will be created, but you should not close this window.
+cl <- Rhpc_getHandle(5) # ommit number of worker if use Rhpc batch
 
 # Rhpc set to options
 opstr=list("Rhpc.mpi.rank","Rhpc.mpi.procs","Rhpc.mpi.c.comm","Rhpc.mpi.f.comm")

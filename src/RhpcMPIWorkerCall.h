@@ -1,6 +1,6 @@
 /*
     Rhpc : R HPC environment
-    Copyright (C) 2012-2015  Junji NAKANO and Ei-ji Nakama
+    Copyright (C) 2012-2018  Junji NAKANO and Ei-ji Nakama
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -16,7 +16,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include <sys/time.h>
-SEXP Rhpc_mpi_worker_call(SEXP cl, SEXP args, SEXP actioncode)
+SEXP Rhpc_mpi_worker_call(SEXP cl, SEXP args, SEXP actioncode, SEXP usequote)
 {
   int action=INTEGER(actioncode)[0];
 
@@ -72,7 +72,7 @@ SEXP Rhpc_mpi_worker_call(SEXP cl, SEXP args, SEXP actioncode)
   /* serialize */
   GETTIME(ts);
   PROTECT(l_out);
-  PROTECT(out=Rhpc_serialize(args));
+  PROTECT(out=Rhpc_serialize_norealloc(args));
   GETTIME(te);
   TMPRINT("serialize:%f\n");
 
@@ -83,13 +83,13 @@ SEXP Rhpc_mpi_worker_call(SEXP cl, SEXP args, SEXP actioncode)
   modi = szi%RHPC_SPLIT_SIZE;
   switch (action){
   case 0:
-    SET_CMD(cmd, CMD_NAME_WORKERCALL_NORET,  SUBCMD_NORMAL, cnti, modi);
+    SET_CMD(cmd, CMD_NAME_WORKERCALL_NORET,  SUBCMD_NORMAL, cnti, modi, INTEGER(usequote)[0]);
     break;
   case 2:
-    SET_CMD(cmd, CMD_NAME_WORKERCALL_EXPORT, SUBCMD_NORMAL, cnti, modi);
+    SET_CMD(cmd, CMD_NAME_WORKERCALL_EXPORT, SUBCMD_NORMAL, cnti, modi, INTEGER(usequote)[0]);
     break;
   default:
-    SET_CMD(cmd, CMD_NAME_WORKERCALL_RET,    SUBCMD_NORMAL, cnti, modi);
+    SET_CMD(cmd, CMD_NAME_WORKERCALL_RET,    SUBCMD_NORMAL, cnti, modi, INTEGER(usequote)[0]);
     break;
   }
   _M(MPI_Bcast(cmd, CMDLINESZ, MPI_INT, 0, comm));
@@ -107,7 +107,7 @@ SEXP Rhpc_mpi_worker_call(SEXP cl, SEXP args, SEXP actioncode)
   GETTIME(te);
   TMPRINT("send data:%f\n");
 
-  if(action==0){/* Rhpc_worker_shy */
+  if(action==0){/* Rhpc_worker_shy and Rhpc_worker_noback */
       SEXP nillist;
       PROTECT(nillist=allocVector(VECSXP,procs-1));
       for(i=1; i<procs; i++){
@@ -142,7 +142,8 @@ SEXP Rhpc_mpi_worker_call(SEXP cl, SEXP args, SEXP actioncode)
   for(i=1; i<procs; i++){
     int dummy_main;
     int dummy_sub;
-    GET_CMD(cmds+CMDLINESZ*i, &dummy_main, &dummy_sub, &cnts[i], &mods[i]); 
+    int dummy_usequote;
+    GET_CMD(cmds+CMDLINESZ*i, &dummy_main, &dummy_sub, &cnts[i], &mods[i], &dummy_usequote); 
     szs[i] = cnts[i] * RHPC_SPLIT_SIZE + mods[i];
     reqcnt += cnts[i] + ((mods[i])?1:0);
     REPROTECT(inlista = allocVector(RAWSXP,szs[i]), ix0);

@@ -1,3 +1,14 @@
+0.18-12         * Add function Rhpc_serialize_onlysize and
+	          Rhpc_serialize_norealloc.
+	        * Bug fix...>_<
+
+0.18-11		* The argument usequote was added.
+	          Everything was quoted before, but this time added
+	          it as an argument so that user can choose
+	          usequpte=FALSE for performance improvement.
+	        * Fixed a PROTECT bug...
+	        * Remove diagnostic pragma
+
 0.17-353	* support MPI_Comm_Spawn for MS-MPI v8.1.
                 * MPI_COMM_SPAWN of MS-MPI must be executed on the master
 		  executed under mpiexec. Rhpc added a mechanism to execute
@@ -9,28 +20,26 @@
 		* Tomas Kalibera investigated and reported (politely and
 		  patiently ^^;) the problem of libR link.
 
-	
-
 0.15-244	* change NUL device to /dev/null in Makevers.win.
 
-0.15-243	* add keep names attribute.
-		* omit serialize mode and MPI sync mode.
+0.15-243	* Add keep names attribute.
+		* Pmit serialize mode and MPI sync mode.
 
-0.15-238	* increased the split size in openib number of segments issues.
-		* add function Rhpc_sapply,Rhpc_sapplyLB and Rhpc_apply.
+0.15-238	* Increased the split size in openib number of segments issues.
+		* Add function Rhpc_sapply,Rhpc_sapplyLB and Rhpc_apply.
 
 0.15-212	* Fixed broken protected bug.
 
-0.15-177	* diet communication for Rhpc_lapply
+0.15-177	* Diet communication for Rhpc_lapply
 
-0.15-176	* support add on Solaris, FreeBSD
-		* support add other GUI for windows
+0.15-176	* Support add on Solaris, FreeBSD
+		* Support add other GUI for windows
 
 0.15-162	* Removed `$(RM)' in Makefile.in
 
 0.15-154	* tweak batch for Windows
 
-0.15-153	* add trick AC_LINK_IFELSE on gcc-4.8.
+0.15-153	* Add trick AC_LINK_IFELSE on gcc-4.8.
 
 0.15-147	* Removed of drive problem.
 

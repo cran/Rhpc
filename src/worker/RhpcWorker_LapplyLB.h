@@ -1,6 +1,6 @@
 /*
     Rhpc : R HPC environment
-    Copyright (C) 2012-2015  Junji NAKANO and Ei-ji Nakama
+    Copyright (C) 2012-2018  Junji NAKANO and Ei-ji Nakama
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -23,6 +23,7 @@ static void Rhpc_worker_lapply_LB(int *cmd)
   int  getsubcmd = 0;
   R_xlen_t cnti = 0;
   R_xlen_t modi = 0;
+  int  usequote=0;
 
   /* data recive alloc */
   R_xlen_t leni;
@@ -37,7 +38,7 @@ static void Rhpc_worker_lapply_LB(int *cmd)
   SEXP argq;
 
 
-  GET_CMD(cmd, &getcmd, &getsubcmd, &cnti, &modi);
+  GET_CMD(cmd, &getcmd, &getsubcmd, &cnti, &modi, &usequote);
 
   /* data recive alloc */
   leni = cnti * RHPC_SPLIT_SIZE + modi;
@@ -54,9 +55,7 @@ static void Rhpc_worker_lapply_LB(int *cmd)
    }
 
   /* unserialize */
-  fun_arg=Rhpc_unserialize(data);
-  UNPROTECT(1);
-  PROTECT(fun_arg);
+  PROTECT(fun_arg=Rhpc_unserialize(data));
   PROTECT(l_fun_arg=R_NilValue);
 
   /* find function */
@@ -73,7 +72,10 @@ static void Rhpc_worker_lapply_LB(int *cmd)
   
 
   /* quote */
-  PROTECT(argq=Rhpc_enquote(arg));
+  if(usequote)
+    PROTECT(argq=Rhpc_enquote(arg));
+  else
+    PROTECT(argq=arg);
 
   for(;1;){
     /* get X argument */
@@ -105,9 +107,9 @@ static void Rhpc_worker_lapply_LB(int *cmd)
     /*
       mydump((void*)cmdx,CMDLINESZ*sizeof(int));
     */
-    GET_CMD(cmdx, &getx, &getsubx, &cntx, &modx);
+    GET_CMD(cmdx, &getx, &getsubx, &cntx, &modx, &usequote);
     if( getsubx == SUBCMD_EXIT ){
-      UNPROTECT(5);
+      UNPROTECT(6);
       return;
     }
     lenx = RHPC_SPLIT_SIZE * cntx + modx;
@@ -158,7 +160,10 @@ static void Rhpc_worker_lapply_LB(int *cmd)
       if(i)
 	SET_VECTOR_ELT(argw,i,VECTOR_ELT(argq,i-1));
       else
-	SET_VECTOR_ELT(argw,i,LCONS(install("quote"),CONS(X,R_NilValue)));
+	if(usequote)
+	  SET_VECTOR_ELT(argw,i,LCONS(install("quote"),CONS(X,R_NilValue)));
+	else
+	  SET_VECTOR_ELT(argw,i,X);
       if(!isNull(names)){
 	SET_STRING_ELT(namesymbol,i,(i)?STRING_ELT(names, i-1):mkChar(""));
       }else{
@@ -175,7 +180,10 @@ static void Rhpc_worker_lapply_LB(int *cmd)
 
     /* eval */
     errorOccurred=0;
-    PROTECT(lng = LCONS(Rhpc_docall, CONS(fun,CONS(argw, R_NilValue))));
+    if(usequote)
+      PROTECT(lng = LCONS(Rhpc_docall, CONS(fun,CONS(argw, R_NilValue))));
+    else
+      PROTECT(lng = LCONS(install("do.call"), CONS(fun, CONS(argw, R_NilValue))));
     ret=R_tryEval(lng, R_GlobalEnv, &errorOccurred);
     DPRINT("errorOccurred=%d\n",errorOccurred);
     
@@ -204,7 +212,7 @@ static void Rhpc_worker_lapply_LB(int *cmd)
 
     /* serialize */
     PROTECT(l_out=R_NilValue);
-    PROTECT(out=Rhpc_serialize(tag_ret));
+    PROTECT(out=Rhpc_serialize_norealloc(tag_ret));
     DPRINT("success  serialize outlength=%ld\n",xlength(out));
 
 
@@ -227,7 +235,7 @@ static void Rhpc_worker_lapply_LB(int *cmd)
       request = Calloc(reqcnt+1,  MPI_Request);
       status  = Calloc(reqcnt+1,  MPI_Status);
 
-      SET_CMD(cmdo, CMD_NAME_LAPPLY_LB, SUBCMD_NORMAL, cnto, modo );
+      SET_CMD(cmdo, CMD_NAME_LAPPLY_LB, SUBCMD_NORMAL, cnto, modo, usequote );
 
       calls=0;
       _M(MPI_Isend(cmdo,   (int)CMDLINESZ,
@@ -253,7 +261,7 @@ static void Rhpc_worker_lapply_LB(int *cmd)
       Free(status);
       DPRINT("send data wait end\n");
     }
-    UNPROTECT(12);
+    UNPROTECT(13);
   }
   return;
 }
