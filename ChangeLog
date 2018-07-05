@@ -1,3 +1,8 @@
+0.18-185	* Change format from binary to xdr
+	        * Serialize version follows the environment
+	          variable R_DEFAULT_SERIALIZE_VERSION
+		* tweak option("Rhpc.mpiexec")
+
 0.18-12         * Add function Rhpc_serialize_onlysize and
 	          Rhpc_serialize_norealloc.
 	        * Bug fix...>_<
@@ -5,7 +10,7 @@
 0.18-11		* The argument usequote was added.
 	          Everything was quoted before, but this time added
 	          it as an argument so that user can choose
-	          usequpte=FALSE for performance improvement.
+ 	          usequpte=FALSE for performance improvement.
 	        * Fixed a PROTECT bug...
 	        * Remove diagnostic pragma
 

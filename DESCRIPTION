@@ -1,9 +1,9 @@
 Package: Rhpc
-Version: 0.18-12
-Date: 2018-01-12
+Version: 0.18-185
+Date: 2018-07-04
 Title: Permits *apply() Style Dispatch for 'HPC'
-Author: Junji NAKANO <nakanoj@ism.ac.jp> and Ei-ji Nakama<nakama@com-one.com>
-Maintainer: Ei-ji Nakama <nakama@com-one.com>
+Author: Junji NAKANO <nakanoj@ism.ac.jp> and Ei-ji Nakama <nakama@ki.rim.or.jp>
+Maintainer: Ei-ji Nakama <nakama@ki.rim.or.jp>
 Depends: R (>= 3.0.0)
 Imports: parallel
 SystemRequirements: R built as a shared or static library, 'MPI'
@@ -14,6 +14,6 @@ License: AGPL-3
 URL: http://prs.ism.ac.jp/~nakama/Rhpc/
 ByteCompile: true
 NeedsCompilation: yes
-Packaged: 2018-01-12 03:59:05 UTC; nakama
+Packaged: 2018-07-04 02:28:48 UTC; nakama
 Repository: CRAN
-Date/Publication: 2018-01-12 04:39:42 UTC
+Date/Publication: 2018-07-05 12:50:16 UTC

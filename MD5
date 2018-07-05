@@ -1,5 +1,5 @@
-d6ac90578cccd938b15a9a79614e8641 *ChangeLog
-e5f2ab1d18bc620ebb3da2af8db0f8e6 *DESCRIPTION
+ed0e73949ba2c8d658df949902666659 *ChangeLog
+b4808715e52f51d1a75c448ddcd5c9d1 *DESCRIPTION
 1f3354a86cea0226a7d2539619e8c203 *NAMESPACE
 b5d145608aa873f1975cff190e7e651b *R/Rhpc.R
 f7dcdba59c8fcef026301a72f858dce8 *R/RhpcExt.R
@@ -15,11 +15,11 @@ d41d8cd98f00b204e9800998ecf8427e *configure.win
 2c48408725a59d4ed810feb58656e112 *man/Rhpc-package.Rd
 b813403d9b55af217e03391774744d62 *src/Makevars.in
 c3c708c172ee24fd72859c44348ba28b *src/Makevars.win
-dd709cca29a50348e7a45bcf6ee5497d *src/RhpcMPI.c
+fa32ad8192052dbf3afe1fed0e3a65c6 *src/RhpcMPI.c
 a83cf4ca7b535230485b03da4ce9cc24 *src/RhpcMPIWorkerCall.h
 15858bbecb3128a48ffacb2077579df7 *src/RhpcMPIlapplyLB.h
 074da007366f2b41f388a34b2f6bc2a9 *src/RhpcMPIlapplyseq.h
-27eb9819faa92e4a280ab87a05dfc379 *src/RhpcSerialize.c
+f58578a8c28f3d78848ad2103db0bffd *src/RhpcSerialize.c
 c384112464e3c728c99027c456d95e33 *src/common/Rhpc.h
 3943b48329e67630313a9a95b2db64c2 *src/common/Rhpc_ms.h
 c1329a0b916c838bdb9dabb60fba8914 *src/common/config.h.in

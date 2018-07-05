@@ -27,8 +27,27 @@
 #define USE_INTERNAL
 #include <Rinternals.h>
 
-static const int R_DefaultSerializeVersion = 2;
+/* from R-3.5.0  serialize.c */
+static int defaultSerializeVersion()
+{
+    static int dflt = -1;
 
+    if (dflt < 0) {
+        char *valstr = getenv("R_DEFAULT_SERIALIZE_VERSION");
+        int val = -1;
+        if (valstr != NULL)
+            val = atoi(valstr);
+        if (val == 2 || val == 3)
+            dflt = val;
+        else
+            dflt = 2; /* the default */
+    }
+    return dflt;
+}
+
+/*
+static const int R_DefaultSerializeVersion = 2;
+*/
 
 /*
  * Persistent Memory Streams
@@ -225,8 +244,8 @@ SEXP Rhpc_serialize(SEXP object)
     struct membuf_st mbs;
     SEXP val;
 
-    version = R_DefaultSerializeVersion;
-    type = R_pstream_binary_format;
+    version = defaultSerializeVersion();
+    type = R_pstream_xdr_format;
 
 
     /* set up a context which will free the buffer if there is an error */
@@ -250,8 +269,8 @@ SEXP Rhpc_serialize_onlysize(SEXP object)
     struct membuf_st mbs;
     SEXP val;
 
-    version = R_DefaultSerializeVersion;
-    type = R_pstream_binary_format;
+    version = defaultSerializeVersion();
+    type = R_pstream_xdr_format;
 
 
     /* set up a context which will free the buffer if there is an error */
@@ -287,8 +306,8 @@ SEXP Rhpc_serialize_norealloc(SEXP object)
     PROTECT(val = allocVector(RAWSXP, mbs.size));
     mbs.buf  = RAW(val);
     
-    version = R_DefaultSerializeVersion;
-    type = R_pstream_binary_format;
+    version = defaultSerializeVersion();
+    type = R_pstream_xdr_format;
 
 
     /* set up a context which will free the buffer if there is an error */
@@ -305,7 +324,7 @@ SEXP Rhpc_serialize_norealloc(SEXP object)
 
 SEXP Rhpc_unserialize(SEXP object)
 {
-    struct R_inpstream_st in;
+   struct R_inpstream_st in;
 
     /* We might want to read from a long raw vector */
     struct membuf_st mbs;

@@ -96,16 +96,18 @@ static void fakemastercmd(char *buf, size_t buf_sz, char *pipename)
   else{
     SEXP op_ex;
     SEXP op_nm;
+    SEXP op_opt;
+    SEXP op_mpi;
     strncpy(mpiexeccmd, FAKE_DEFAULT_MPIEXEC,    sizeof(mpiexeccmd));
-    PROTECT(op_ex = LCONS(install("options"),
-                          CONS(ScalarString(mkChar(FAKE_DEFAULT_MPIEXEC)),
-			       R_NilValue)));
+    PROTECT(op_opt = install("options"));
+    PROTECT(op_mpi = ScalarString(mkChar(FAKE_DEFAULT_MPIEXEC)));
+    PROTECT(op_ex = LCONS(op_opt, CONS(op_mpi, R_NilValue)));
     PROTECT(op_nm = allocVector(STRSXP, 2));
     SET_STRING_ELT(op_nm,0,mkChar(""));
     SET_STRING_ELT(op_nm,1,mkChar("Rhpc.mpiexec"));
     setAttrib(op_ex, R_NamesSymbol, op_nm);
     R_tryEval(op_ex, R_GlobalEnv, &errorOccurred);
-    UNPROTECT(2);    
+    UNPROTECT(4);    
   }
   snprintf(buf, buf_sz, "%s \"%s\" %s", mpiexeccmd, fakemaster, pipename); 
   //MessageBox(NULL,buf,"CMD",MB_OK);
