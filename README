@@ -72,8 +72,9 @@
      and it adds fakemaster at the end of mpiexec command like
           "mpiexec -n 1 fakemaster"
      when Rhpc_initialize.
-     This makes it easy to parallelize from one-PC to cluster
-     environment(maybe...).
+     There seems to be no way to activate processes of other nodes
+     at MPI_Comm_spawn on MS-MPI v9.01.
+     (only single node MPI-Comm-spawn on MS-MPI v 9.01)
 
      ex. launch Rgui,Rstudio or Rterm
      follow input

@@ -245,7 +245,7 @@ SEXP Rhpc_serialize(SEXP object)
     SEXP val;
 
     version = defaultSerializeVersion();
-    type = R_pstream_xdr_format;
+    type = R_pstream_binary_format;
 
 
     /* set up a context which will free the buffer if there is an error */
@@ -270,7 +270,7 @@ SEXP Rhpc_serialize_onlysize(SEXP object)
     SEXP val;
 
     version = defaultSerializeVersion();
-    type = R_pstream_xdr_format;
+    type = R_pstream_binary_format;
 
 
     /* set up a context which will free the buffer if there is an error */
@@ -307,7 +307,7 @@ SEXP Rhpc_serialize_norealloc(SEXP object)
     mbs.buf  = RAW(val);
     
     version = defaultSerializeVersion();
-    type = R_pstream_xdr_format;
+    type = R_pstream_binary_format;
 
 
     /* set up a context which will free the buffer if there is an error */

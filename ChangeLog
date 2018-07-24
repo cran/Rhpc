@@ -1,3 +1,8 @@
+0.18-204	* Fixed memory leaks in Rhpc_lapply on worker,
+	          Report from Ott Toomet
+
+0.18-187        * Change format from xdr to binary
+
 0.18-185	* Change format from binary to xdr
 	        * Serialize version follows the environment
 	          variable R_DEFAULT_SERIALIZE_VERSION

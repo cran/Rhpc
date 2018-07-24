@@ -275,7 +275,7 @@ static void Rhpc_worker_lapply_seq(int *cmd)
     Free(status);
     DPRINT("send data wait end\n");
   }
-  UNPROTECT(11);
+  UNPROTECT(13);
 
   /* recv exit */
   {
