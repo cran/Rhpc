@@ -1,5 +1,5 @@
 AC_PREREQ(2.62)
-AC_INIT(Rhpc, 0.17, nakama@com-one.com)
+AC_INIT(Rhpc, 0.18, nakama@ki.rim.or.jp)
 
 AC_CONFIG_HEADER(src/common/config.h)
 
@@ -135,7 +135,8 @@ if test -z "${MY_PACKAGE_DIR}" ; then
 	if test "${RPM_BUILD_ROOT}x" != "x"; then
 		MY_PACKAGE_DIR=${R_HOME}/library/Rhpc
 	else
-		MY_PACKAGE_DIR=${R_PACKAGE_DIR}
+		#MY_PACKAGE_DIR=${R_PACKAGE_DIR}
+		MY_PACKAGE_DIR=`${R_HOME}/bin/Rscript -e 'cat(grep("^(?!.*00LOCK).*$",.libPaths(),value=TRUE,perl=T)[[1]])'`/${R_PACKAGE_NAME}
 	fi
 fi
 

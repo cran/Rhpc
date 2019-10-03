@@ -1,3 +1,7 @@
+0.19-276	* Patching the latest environment from Jeroen Ooms san!.
+		* Fix overrun problem with strncpy
+	        * fix StageInstall
+
 0.18-204	* Fixed memory leaks in Rhpc_lapply on worker,
 	          Report from Ott Toomet
 

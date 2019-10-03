@@ -88,17 +88,17 @@ static void fakemastercmd(char *buf, size_t buf_sz, char *pipename)
 #endif
   PROTECT( cmdexpr = R_ParseVector(cmdSexp, -1, &status, R_NilValue));
   ret=R_tryEval(VECTOR_ELT(cmdexpr,0), R_GlobalEnv, &errorOccurred);
-  strncpy(fakemaster, CHAR(STRING_ELT(ret,0)), sizeof(fakemaster));
+  strncpy(fakemaster, CHAR(STRING_ELT(ret,0)), sizeof(fakemaster)-1);
   
   ret=GetOption1(install("Rhpc.mpiexec"));
   if (TYPEOF(ret) == STRSXP)
-    strncpy(mpiexeccmd, CHAR(STRING_ELT(ret,0)), sizeof(mpiexeccmd));    
+    strncpy(mpiexeccmd, CHAR(STRING_ELT(ret,0)), sizeof(mpiexeccmd)-1);    
   else{
     SEXP op_ex;
     SEXP op_nm;
     SEXP op_opt;
     SEXP op_mpi;
-    strncpy(mpiexeccmd, FAKE_DEFAULT_MPIEXEC,    sizeof(mpiexeccmd));
+    strncpy(mpiexeccmd, FAKE_DEFAULT_MPIEXEC,    sizeof(mpiexeccmd)-1);
     PROTECT(op_opt = install("options"));
     PROTECT(op_mpi = ScalarString(mkChar(FAKE_DEFAULT_MPIEXEC)));
     PROTECT(op_ex = LCONS(op_opt, CONS(op_mpi, R_NilValue)));
@@ -298,7 +298,7 @@ SEXP Rhpc_mpi_initialize(void)
 #endif
     PROTECT( cmdexpr = R_ParseVector(cmdSexp, -1, &status, R_NilValue));
     ret=R_tryEval(VECTOR_ELT(cmdexpr,0), R_GlobalEnv, &errorOccurred);
-    strncpy(RHPC_WORKER_CMD, CHAR(STRING_ELT(ret,0)), sizeof(RHPC_WORKER_CMD));
+    strncpy(RHPC_WORKER_CMD, CHAR(STRING_ELT(ret,0)), sizeof(RHPC_WORKER_CMD)-1);
     UNPROTECT(2);
   }
 
@@ -383,7 +383,7 @@ SEXP Rhpc_gethandle(SEXP procs)
   }
 
 #ifdef WIN32
-  strncpy(r_home, getenv("R_HOME"), sizeof(r_home)); 
+  strncpy(r_home, getenv("R_HOME"), sizeof(r_home)-1); 
   if(1){
     int  errorOccurred=0;
     SEXP ret;
@@ -398,7 +398,7 @@ SEXP Rhpc_gethandle(SEXP procs)
 #endif
     PROTECT( cmdexpr = R_ParseVector(cmdSexp, -1, &status, R_NilValue));
     ret=R_tryEval(VECTOR_ELT(cmdexpr,0), R_GlobalEnv, &errorOccurred);
-    strncpy(target_path, CHAR(STRING_ELT(ret,0)), sizeof(target_path));
+    strncpy(target_path, CHAR(STRING_ELT(ret,0)), sizeof(target_path)-1);
     UNPROTECT(2);
     spawn_argv[0]=r_home;
     spawn_argv[1]=target_path;
@@ -446,7 +446,7 @@ SEXP Rhpc_mpi_finalize(void)
   /* close fakemaster */
   if(hP!=NULL&&hP!=INVALID_HANDLE_VALUE){
     char buf[FAKE_BUF_SZ];
-    strncpy(buf, "EOT", sizeof(buf));
+    strncpy(buf, "EOT", sizeof(buf)-1);
     DWORD dwNumberOfBytesWritten;
 
     if(0==WriteFile(hP,

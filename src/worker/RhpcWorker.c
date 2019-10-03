@@ -45,6 +45,13 @@
 #endif
 #include <Rinternals.h>
 #include <R_ext/Parse.h>
+
+/* from Jeroen Ooms san! */
+#include <Rversion.h>
+#if R_VERSION >= R_Version(4,0,0)
+#define R_Slave R_NoEcho
+#endif
+
 #define WORKER 1
 #include <mpi.h>
 

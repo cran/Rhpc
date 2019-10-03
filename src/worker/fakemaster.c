@@ -56,7 +56,7 @@ int main (int argc, char *argv[])
     /*
     strncpy(pipename, lpCmdLine, sizeof(pipename));
     */
-    strncpy(pipename, argv[1], sizeof(pipename));
+    strncpy(pipename, argv[1], sizeof(pipename)-1);
   }
   
   memset(buf,0,sizeof(buf));

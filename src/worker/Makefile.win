@@ -1,19 +1,19 @@
 
 MPI_TYPE=MSMPI
 ifeq "$(MPI_TYPE)" "MSMPI"
-XMSMPI_INC=$(shell ${R_HOME}/bin/Rscript -e "cat(gsub('\\\\\\\\','/',shortPathName(Sys.getenv('MSMPI_INC'))))")
-XMSMPI_LIB32=$(shell ${R_HOME}/bin/Rscript -e "cat(gsub('\\\\\\\\','/',shortPathName(Sys.getenv('MSMPI_LIB32'))))")
-XMSMPI_LIB64=$(shell ${R_HOME}/bin/Rscript -e "cat(gsub('\\\\\\\\','/',shortPathName(Sys.getenv('MSMPI_LIB64'))))")
+XMSMPI_INC='$(subst \,/,$(MSMPI_INC))'
+XMSMPI_LIB32='$(subst \,/,$(MSMPI_LIB32))'
+XMSMPI_LIB64='$(subst \,/,$(MSMPI_LIB64))'
 ifeq "$(WIN)" "64"
 TARGET_ARCH=64
 MPILIBA=../libmsmpi64.a
-PKG_CFLAGS= -DMSMPI_NO_SAL -I$(XMSMPI_INC) -DMSMPI_NO_DEPRECATE_20
+PKG_CFLAGS= -I$(XMSMPI_INC) -DMSMPI_NO_DEPRECATE_20
 #PKG_LIBS= "$(XMSMPI_LIB64)/msmpi.lib"
 PKG_LIBS= $(MPILIBA)
 else
 TARGET_ARCH=32
-PKG_CFLAGS= -DMSMPI_NO_SAL -I$(XMSMPI_INC) -DMSMPI_NO_DEPRECATE_20
-PKG_LIBS= "$(XMSMPI_LIB32)/msmpi.lib"
+PKG_CFLAGS= -I$(XMSMPI_INC) -DMSMPI_NO_DEPRECATE_20
+PKG_LIBS= -L$(XMSMPI_LIB32) -l:msmpi.lib
 endif
 endif
 
