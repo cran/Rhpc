@@ -1,6 +1,6 @@
 /*
     Rhpc : R HPC environment
-    Copyright (C) 2012-2018  Junji NAKANO and Ei-ji Nakama
+    Copyright (C) 2012-2021  Junji NAKANO and Ei-ji Nakama
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -79,7 +79,7 @@ int main (int argc, char *argv[])
 		   MB_OK);
 	return 1;
       }
-      snprintf(b, sizeof(buf)-(b-buf+strlen(e)+1+2), "%s\0", e);
+      snprintf(b, sizeof(buf)-(b-buf+strlen(e)+1+2), "%s", e);
       b+=strlen(b)+1;
     }      
     e+=strlen(e)+1;
@@ -94,7 +94,7 @@ int main (int argc, char *argv[])
                   0,
                   NULL);
   if(hP == INVALID_HANDLE_VALUE){
-    snprintf(msg, sizeof(msg), "Invalid handle value : named pipe [%s]", pipename);
+    snprintf(msg, sizeof(msg)-1, "Invalid handle value : named pipe [%s]", pipename);
     MessageBox(NULL,
 	       msg,
 	       "Rhpc:fakemaster",
@@ -106,7 +106,7 @@ int main (int argc, char *argv[])
 		  buf,
 		  sizeof(buf),
 		  &dwNumberOfBytesWritten, NULL)){
-    snprintf(msg, sizeof(msg), "Faild to write named pipe [%s]", pipename);
+    snprintf(msg, sizeof(msg)-1, "Faild to write named pipe [%s]", pipename);
     MessageBox(NULL,
 	       msg,
 	       "Rhpc:fakemaster",
@@ -120,7 +120,7 @@ int main (int argc, char *argv[])
 		  buf,
 		  sizeof(buf),
 		  &dwNumberOfBytesRead, NULL)){
-    snprintf(msg, sizeof(msg), "Can't detected Rhpc_finalize() on fakemaster[pipe:%s].", pipename);
+    snprintf(msg, sizeof(msg)-1, "Can't detected Rhpc_finalize() on fakemaster[pipe:%s].", pipename);
     MessageBox(NULL,
 	       msg,
 	       "Rhpc:fakemaster",

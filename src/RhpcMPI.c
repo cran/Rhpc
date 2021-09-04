@@ -155,7 +155,7 @@ static int cheatMPImaster(void)
   }
 
   /* mpiexec */
-  fakemastercmd(cmd,sizeof(cmd), pipename);
+  fakemastercmd(cmd,sizeof(cmd)-1, pipename);
   fakemaster_si.wShowWindow=SW_HIDE;
   if(0 == CreateProcess(NULL, cmd, NULL, NULL, FALSE, CREATE_NEW_CONSOLE|NORMAL_PRIORITY_CLASS, NULL, NULL, &fakemaster_si, &fakemaster_pi)){
     char *msg;

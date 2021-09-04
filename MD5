@@ -1,5 +1,5 @@
-666e94726cab3e9c054bc4c5a4a41496 *ChangeLog
-ba1babcb620362ac9531e596699b9757 *DESCRIPTION
+04b4eb7747a9b03b0b59878dde866eea *ChangeLog
+366c8d7b0116e546e294e18651781d2d *DESCRIPTION
 1f3354a86cea0226a7d2539619e8c203 *NAMESPACE
 b5d145608aa873f1975cff190e7e651b *R/Rhpc.R
 f7dcdba59c8fcef026301a72f858dce8 *R/RhpcExt.R
@@ -12,10 +12,10 @@ f7dcdba59c8fcef026301a72f858dce8 *R/RhpcExt.R
 0089ef975a707e56b3858b24dc3fe2b6 *configure
 5bbb31f2752ede1de03bb3f2dc0ef3f5 *configure.ac
 d41d8cd98f00b204e9800998ecf8427e *configure.win
-2c48408725a59d4ed810feb58656e112 *man/Rhpc-package.Rd
+90494ade493a235edaf82cecd354cd8c *man/Rhpc-package.Rd
 b813403d9b55af217e03391774744d62 *src/Makevars.in
 70f90b0e74dc82936f1bec42eeec6130 *src/Makevars.win
-052a0bc84d76afb3b6a8e1f61cd493a6 *src/RhpcMPI.c
+07693ede8b92abb5bc7d6b4a5a503281 *src/RhpcMPI.c
 a83cf4ca7b535230485b03da4ce9cc24 *src/RhpcMPIWorkerCall.h
 15858bbecb3128a48ffacb2077579df7 *src/RhpcMPIlapplyLB.h
 074da007366f2b41f388a34b2f6bc2a9 *src/RhpcMPIlapplyseq.h
@@ -37,4 +37,4 @@ a54181e1e14abdd131eca4721d3cf543 *src/worker/RhpcWorkerSerialize.c
 8072fad4cfc821792616268809e55bd8 *src/worker/RhpcWorker_LapplyLB.h
 5c6dd836debdeb9fa4ef8ae6446ffa43 *src/worker/RhpcWorker_Lapplyseq.h
 37c8d481c768851d10aaf63b682d4b76 *src/worker/RhpcWorker_WorkerCall.h
-94fe4d7c7f9e66930f2ff71123e6b03a *src/worker/fakemaster.c
+e52560a15319c81abad3f7ea3a601f58 *src/worker/fakemaster.c
